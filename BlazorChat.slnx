@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/BlazorChat/">
+    <Project Path="BlazorChat/BlazorChat.Client/BlazorChat.Client.csproj" />
+    <Project Path="BlazorChat/BlazorChat/BlazorChat.csproj" />
+  </Folder>
+</Solution>
