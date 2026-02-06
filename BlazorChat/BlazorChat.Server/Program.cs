@@ -1,6 +1,6 @@
 using BlazorChat.Server.Components;
 
-namespace BlazorChat;
+namespace BlazorChat.Server;
 
 public class Program
 {
