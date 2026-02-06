@@ -1,0 +1,25 @@
+# --- User Specified ---
+# Exclude Visual Studio Code settings and configurations
+.vscode/
+
+# --- Build Results ---
+# Ignore build output folders (Debug/Release)
+[Bb]in/
+[Oo]bj/
+
+# --- Visual Studio / IDE ---
+# Ignore Visual Studio temporary files, caches, and user-specific settings
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- OS Specific ---
+# Ignore Mac/Windows system files
+.DS_Store
+Thumbs.db
+
+# --- Optional / Environment ---
+# Uncomment the line below if you want to ignore local development settings
+# appsettings.Development.json
