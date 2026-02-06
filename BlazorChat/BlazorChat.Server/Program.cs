@@ -1,5 +1,4 @@
-using BlazorChat.Client.Pages;
-using BlazorChat.Components;
+using BlazorChat.Server.Components;
 
 namespace BlazorChat;
 
