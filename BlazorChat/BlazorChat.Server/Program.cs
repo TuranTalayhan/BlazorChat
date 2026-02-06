@@ -1,7 +1,6 @@
-using BlazorChat.Client.Pages;
-using BlazorChat.Components;
+using BlazorChat.Server.Components;
 
-namespace BlazorChat;
+namespace BlazorChat.Server;
 
 public class Program
 {
