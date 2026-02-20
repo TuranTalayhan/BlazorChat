@@ -1,4 +1,5 @@
 using BlazorChat.Server.Components;
+using MudBlazor.Services;
 
 namespace BlazorChat.Server;
 
@@ -7,10 +8,12 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        
+        
         // Add services to the container.
+        builder.Services.AddMudServices();
         builder.Services.AddRazorComponents()
-            .AddInteractiveWebAssemblyComponents();
+            .AddInteractiveServerComponents();
 
         var app = builder.Build();
 
@@ -33,7 +36,7 @@ public class Program
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
-            .AddInteractiveWebAssemblyRenderMode()
+            .AddInteractiveServerRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
 
         app.Run();

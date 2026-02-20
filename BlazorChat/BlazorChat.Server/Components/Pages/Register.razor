@@ -1,0 +1,19 @@
+@page "/register"
+@layout AuthLayout
+
+<MudText Typo="Typo.h1" Align="Align.Center" Class="font-weight-bold mb-6" Style="color: #333333;font-size: 2.5rem;">
+    Create an Account
+</MudText>
+
+<MudTextField T="string" Placeholder="Email" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+<MudTextField T="string" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+<MudTextField T="string" Placeholder="Password" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-8" />
+
+<MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="btn-pill py-2 mb-6" DisableElevation="true">
+    Register
+</MudButton>
+
+<div class="d-flex align-center justify-center mt-2">
+    <MudText Typo="Typo.body2" Style="color: #9e9e9e;" Class="mr-1">Already have an account?</MudText>
+    <MudLink Href="/" Typo="Typo.body2" Underline="Underline.Always">Login</MudLink>
+</div>

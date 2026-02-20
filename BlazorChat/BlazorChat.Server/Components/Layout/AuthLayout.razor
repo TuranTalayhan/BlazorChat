@@ -1,0 +1,46 @@
+@inherits LayoutComponentBase
+
+<style>
+    .auth-background {
+        background: radial-gradient(circle at top left, #1a4a7b, #091e36);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bg-shape {
+        position: absolute;
+        opacity: 0.6;
+    }
+    .triangle {
+        width: 0;
+        height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-bottom: 15px solid #f28c28;
+    }
+    .square {
+        width: 12px;
+        height: 12px;
+        background-color: #3498db;
+    }
+
+    .btn-pill {
+        border-radius: 50px !important;
+        text-transform: none !important;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+</style>
+
+<div class="auth-background">
+
+    <MudPaper Elevation="4" Class="pa-10 rounded-xl" Width="450px" Style="background-color: #ffffff;">
+
+        @Body
+
+    </MudPaper>
+</div>
