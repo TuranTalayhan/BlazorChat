@@ -1,0 +1,128 @@
+@using BlazorChat.Server.Components.Shared
+<nav class="primary-nav">
+    <div class="nav-tabs">
+        <button class="tab @(IsDirectMessageMode ? "" : "active")" @onclick="() => SetMode(false)">SERVERS</button>
+        <button class="tab @(IsDirectMessageMode ? "active" : "")" @onclick="() => SetMode(true)">FRIENDS</button>
+    </div>
+
+    <div class="search-container">
+        <MudIcon Icon="@Icons.Material.Filled.Search" Class="search-icon" />
+        <input type="text" 
+               class="search-input" 
+               placeholder="@(IsDirectMessageMode ? "Filter friends..." : "Filter servers...")"
+               @bind="SearchTerm" 
+               @bind:event="oninput" />
+    </div>
+
+    @if (IsDirectMessageMode)
+    {
+        <div class="segmented-control">
+            <button class="segment @(string.IsNullOrEmpty(ActiveStatusFilter) ? "active" : "")" 
+                    @onclick="@(() => ActiveStatusFilter = "")">All</button>
+        
+            <button class="segment @(ActiveStatusFilter == "online" ? "active" : "")" 
+                    @onclick="@(() => ActiveStatusFilter = "online")">Online</button>
+        </div>
+    }
+
+    <div class="nav-list">
+        @foreach(var item in FilteredList)
+        {
+            <div class="list-item">
+                <div class="avatar">
+                    @if (IsDirectMessageMode)
+                    {
+                        <div class="status @item.Status"></div>
+                    }
+                    else
+                    {
+                        @* Use the first letter of the server name for the avatar *@
+                        <span>@item.Name.Substring(0,1)</span> 
+                    }
+                </div>
+                <span class="name">@item.Name</span>
+            </div>
+        }
+        
+        <button class="add-button" @onclick="() => ShowAddModal = true">+</button>
+    </div>
+    
+    <UserProfileFooter />
+</nav>
+
+@if (ShowAddModal)
+{
+    <AddFriendModal OnClose="() => ShowAddModal = false" />
+}
+
+@code {
+    [Parameter] public bool IsDirectMessageMode { get; set; } = true;
+    [Parameter] public EventCallback<bool> IsDirectMessageModeChanged { get; set; }
+
+    private bool ShowAddModal = false;
+    private string SearchTerm { get; set; } = string.Empty;
+    private string ActiveStatusFilter { get; set; } = string.Empty;
+
+    // 1. The Class Definition
+    private class NavItem 
+    { 
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty; 
+    }
+
+    // 2. The Mock Data
+    private List<NavItem> DmFriends = new()
+    {
+        new NavItem { Name = "Alex", Status = "online" },
+        new NavItem { Name = "Morgan", Status = "idle" },
+        new NavItem { Name = "Taylor", Status = "dnd" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+        new NavItem { Name = "Jordan", Status = "offline" },
+    };
+
+    private List<NavItem> Servers = new()
+    {
+        new NavItem { Name = "Gaming Server", Status = "" },
+        new NavItem { Name = "Study Group", Status = "" },
+        new NavItem { Name = "Project Team", Status = "" }
+    };
+
+    // 3. The Filter Logic
+    private IEnumerable<NavItem> FilteredList => IsDirectMessageMode
+        ? DmFriends.Where(f => 
+            (string.IsNullOrWhiteSpace(SearchTerm) || f.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(ActiveStatusFilter) || f.Status == ActiveStatusFilter)
+          )
+        : Servers.Where(s => string.IsNullOrWhiteSpace(SearchTerm) || s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    // 4. The UI Control Methods
+    private void ToggleStatusFilter(string status)
+    {
+        if (ActiveStatusFilter == status)
+        {
+            ActiveStatusFilter = string.Empty; // Turn off if already active
+        }
+        else
+        {
+            ActiveStatusFilter = status; // Switch to the new filter
+        }
+    }
+
+    private async Task SetMode(bool isDm)
+    {
+        IsDirectMessageMode = isDm;
+        SearchTerm = string.Empty; 
+        ActiveStatusFilter = string.Empty; 
+        
+        // Notify the parent layout that the mode has changed
+        await IsDirectMessageModeChanged.InvokeAsync(isDm);
+    }
+}

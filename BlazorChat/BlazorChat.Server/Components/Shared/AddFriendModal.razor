@@ -1,0 +1,21 @@
+<div class="modal-overlay" @onclick="Close">
+    @* stopPropagation prevents clicks inside the white box from bubbling up and closing the modal *@
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <h2>Add Friend</h2>
+        
+        <div class="modal-input-group">
+            <input type="text" placeholder="Enter username#0000" class="modal-input" />
+            <button class="modal-submit-btn" @onclick="Close">Send Friend Request</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public EventCallback OnClose { get; set; }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

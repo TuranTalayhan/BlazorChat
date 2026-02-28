@@ -1,77 +1,14 @@
 ﻿@inherits LayoutComponentBase
 
 <div class="app-layout">
-    <nav class="primary-nav">
-        <div class="nav-tabs">
-            <button class="tab @(IsDirectMessageMode ? "" : "active")" @onclick="() => SetMode(false)">SERVERS</button>
-            <button class="tab @(IsDirectMessageMode ? "active" : "")" @onclick="() => SetMode(true)">FRIENDS</button>
-        </div>
-
-        <div class="search-container">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" 
-                   class="search-input" 
-                   placeholder="@(IsDirectMessageMode ? "Filter friends..." : "Filter servers...")"
-                   @bind="SearchTerm" 
-                   @bind:event="oninput" />
-        </div>
-
-        @if (IsDirectMessageMode)
-        {
-            <div class="segmented-control">
-                <button class="segment @(string.IsNullOrEmpty(ActiveStatusFilter) ? "active" : "")" 
-                        @onclick="@(() => ActiveStatusFilter = "")">All</button>
-            
-                <button class="segment @(ActiveStatusFilter == "online" ? "active" : "")" 
-                        @onclick="@(() => ActiveStatusFilter = "online")">Online</button>
-            </div>
-        }
-
-        <div class="nav-list">
-            @foreach(var item in FilteredList)
-            {
-                <div class="list-item">
-                    <div class="avatar">
-                        @if (IsDirectMessageMode)
-                        {
-                            <div class="status @item.Status"></div>
-                        }
-                        else
-                        {
-                            @* Use the first letter of the server name for the avatar *@
-                            <span>@item.Name.Substring(0,1)</span> 
-                        }
-                    </div>
-                    <span class="name">@item.Name</span>
-                </div>
-            }
-            
-            <button class="add-button" @onclick="OpenModal">+</button>
-        </div>
-        
-        <div class="user-footer">
-            <div class="user-info">
-                <div class="avatar"><div class="status online"></div></div>
-                <div class="user-details">
-                    <span class="username">Username</span>
-                    <span class="status-text">Online</span>
-                </div>
-            </div>
-            <div class="user-actions">
-                <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Filled.Mic" Class="icon-mic" AriaLabel="Microphone" />
-                <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Filled.Headset" Class="icon-headset" AriaLabel="Headset" />
-                <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Filled.Settings" Class="icon-settings" AriaLabel="Settings"/>
-            </div>
-        </div>
-    </nav>
     
-    @if (!IsDirectMessageMode)
+    @* We use @bind- to automatically sync the state between this layout and the sidebar *@
+    <PrimarySidebar @bind-IsDirectMessageMode="_isDirectMessageMode" />
+    
+    @if (!_isDirectMessageMode)
     {
         <aside class="secondary-nav">
-            </aside>
+        </aside>
     }
 
     <main class="chat-area">
@@ -79,88 +16,6 @@
     </main>
 </div>
 
-@* NEW: Add Friend Modal Overlay *@
-@if (ShowAddModal)
-{
-    <div class="modal-overlay" @onclick="CloseModal">
-        @* stopPropagation prevents clicks inside the white box from bubbling up and closing the modal *@
-        <div class="modal-content" @onclick:stopPropagation="true">
-            <h2>Add Friend</h2>
-            
-            <div class="modal-input-group">
-                <input type="text" placeholder="Enter username#0000" class="modal-input" />
-                <button class="modal-submit-btn" @onclick="CloseModal">Send Friend Request</button>
-            </div>
-        </div>
-    </div>
-}
-
 @code {
-    private bool IsDirectMessageMode = true;
-    private bool ShowAddModal = false;
-    private string SearchTerm { get; set; } = string.Empty;
-    private string ActiveStatusFilter { get; set; } = string.Empty;
-
-    // 1. The Class Definition
-    private class NavItem 
-    { 
-        public string Name { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty; 
-    }
-
-    // 2. The Mock Data
-    private List<NavItem> DmFriends = new()
-    {
-        new NavItem { Name = "Alex", Status = "online" },
-        new NavItem { Name = "Morgan", Status = "idle" },
-        new NavItem { Name = "Taylor", Status = "dnd" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-    };
-
-    private List<NavItem> Servers = new()
-    {
-        new NavItem { Name = "Gaming Server", Status = "" },
-        new NavItem { Name = "Study Group", Status = "" },
-        new NavItem { Name = "Project Team", Status = "" }
-    };
-
-    // 3. The Filter Logic
-    private IEnumerable<NavItem> FilteredList => IsDirectMessageMode
-        ? DmFriends.Where(f => 
-            (string.IsNullOrWhiteSpace(SearchTerm) || f.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrWhiteSpace(ActiveStatusFilter) || f.Status == ActiveStatusFilter)
-          )
-        : Servers.Where(s => string.IsNullOrWhiteSpace(SearchTerm) || s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
-
-    // 4. The UI Control Methods
-    private void ToggleStatusFilter(string status)
-    {
-        if (ActiveStatusFilter == status)
-        {
-            ActiveStatusFilter = string.Empty; // Turn off if already active
-        }
-        else
-        {
-            ActiveStatusFilter = status; // Switch to the new filter
-        }
-    }
-
-    private void SetMode(bool isDm)
-    {
-        IsDirectMessageMode = isDm;
-        SearchTerm = string.Empty; 
-        ActiveStatusFilter = string.Empty; 
-    }
-
-    private void OpenModal() { ShowAddModal = true; }
-    private void CloseModal() { ShowAddModal = false; }
+    private bool _isDirectMessageMode = true;
 }

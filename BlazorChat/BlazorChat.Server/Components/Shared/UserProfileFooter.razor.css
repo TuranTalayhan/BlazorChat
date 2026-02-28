@@ -1,0 +1,63 @@
+.user-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 10px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: end;
+}
+
+.username { font-size: 0.85rem; font-weight: bold; }
+.status-text { font-size: 0.7rem; color: #666; }
+
+/* Avatars & Status Dots (Duplicated for component isolation) */
+.avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #b0b0b0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    position: relative;
+    font-size: 0.8rem;
+}
+
+.status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+.status.online { background-color: #23a559; }
+.status.idle { background-color: #f0b232; }
+.status.dnd { background-color: #f23f43; }
+.status.offline { background-color: #80848e; }
+
+/* If using MudBlazor icons, ensure they have spacing */
+::deep .mud-icon-button {
+    padding: 8px;
+}

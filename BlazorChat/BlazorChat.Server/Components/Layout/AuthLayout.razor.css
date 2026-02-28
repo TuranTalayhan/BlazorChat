@@ -1,0 +1,13 @@
+.auth-background {
+    background: radial-gradient(circle at top left, #1a4a7b, #091e36);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+::deep .mud-input-error {
+    color: red !important;
+}

@@ -1,19 +1,68 @@
 @page "/register"
+@using BlazorChat.Shared.DTO
 @layout AuthLayout
 
-<MudText Typo="Typo.h1" Align="Align.Center" Class="font-weight-bold mb-6" Style="color: #333333;font-size: 2.5rem;">
-    Create an Account
-</MudText>
+<EditForm Model="_registerDto" OnValidSubmit="HandleRegistration">
+    <DataAnnotationsValidator />
 
-<MudTextField T="string" Placeholder="Email" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
-<MudTextField T="string" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
-<MudTextField T="string" Placeholder="Password" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-8" />
+    <MudText Typo="Typo.h1" Align="Align.Center" Class="font-weight-bold mb-6" Style="color: #333333;font-size: 2.5rem;">
+        Create an Account
+    </MudText>
+    
+    <MudTextField @bind-Value="_registerDto.Username" 
+                  For="@(() => _registerDto.Username)"
+                  Required="true"
+                  Placeholder="Username" 
+                  Variant="Variant.Outlined" 
+                  Margin="Margin.Dense" 
+                  Class="mb-4" />
 
-<MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="btn-pill py-2 mb-6" DisableElevation="true">
-    Register
-</MudButton>
+    <MudTextField @bind-Value="_registerDto.Email" 
+                  For="@(() => _registerDto.Email)"
+                  Required="true"
+                  Placeholder="Email" 
+                  Variant="Variant.Outlined" 
+                  Margin="Margin.Dense" 
+                  Class="mb-4" />
 
-<div class="d-flex align-center justify-center mt-2">
-    <MudText Typo="Typo.body2" Style="color: #9e9e9e;" Class="mr-1">Already have an account?</MudText>
-    <MudLink Href="/" Typo="Typo.body2" Underline="Underline.Always">Login</MudLink>
-</div>
+    <MudTextField @bind-Value="_registerDto.Password" 
+                  For="@(() => _registerDto.Password)"
+                  Required="true"
+                  Placeholder="Password" 
+                  InputType="InputType.Password" 
+                  Variant="Variant.Outlined" 
+                  Margin="Margin.Dense" 
+                  Class="mb-6" />
+    <MudTextField @bind-Value="_registerDto.ConfirmPassword" 
+                  For="@(() => _registerDto.ConfirmPassword)"
+                  Required="true"
+                  Placeholder="Confirm Password" 
+                  InputType="InputType.Password" 
+                  Variant="Variant.Outlined" 
+                  Margin="Margin.Dense" 
+                  Class="mb-6" />
+    
+    <MudButton ButtonType="ButtonType.Submit" 
+               Variant="Variant.Filled" 
+               Color="Color.Info" 
+               FullWidth="true" 
+               Class="btn-pill py-2 mb-4" 
+               DisableElevation="true">
+        Register
+    </MudButton>
+
+    <div class="d-flex align-center justify-center mt-2">
+        <MudText Typo="Typo.body2" Style="color: #9e9e9e;" Class="mr-1">Already have an account?</MudText>
+        <MudLink Href="/" Typo="Typo.body2" Underline="Underline.Always">Login</MudLink>
+    </div>
+</EditForm>
+
+@code
+{
+    private CreateUserDto _registerDto = new();
+
+    private async Task HandleRegistration()
+    {
+        Console.WriteLine($"Registration complete!");
+    }
+}
