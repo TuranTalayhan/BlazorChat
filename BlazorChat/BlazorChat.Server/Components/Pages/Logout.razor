@@ -1,0 +1,23 @@
+@page "/logout"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject NavigationManager NavManager
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    // We use Task.Run or similar because we want to ensure 
+    // this runs as a standard HTTP request, not a SignalR call.
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext != null)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+        
+        // forceLoad: true is the "Magic Sauce" here. 
+        // It forces a full browser refresh so the cookie is actually cleared.
+        NavManager.NavigateTo("/", forceLoad: true);
+    }
+}

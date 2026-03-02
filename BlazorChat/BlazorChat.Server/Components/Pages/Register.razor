@@ -1,41 +1,54 @@
 @page "/register"
+@using BlazorChat.Server.Data
+@using BlazorChat.Server.Data.Entities
 @using BlazorChat.Shared.DTO
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @layout AuthLayout
 
-<EditForm Model="_registerDto" OnValidSubmit="HandleRegistration">
+@inject AppDbContext DbContext
+@inject NavigationManager NavManager
+
+<EditForm Model="RegisterModel" OnValidSubmit="RegisterUser" FormName="RegisterForm">
     <DataAnnotationsValidator />
 
     <MudText Typo="Typo.h1" Align="Align.Center" Class="font-weight-bold mb-6" Style="color: #333333;font-size: 2.5rem;">
         Create an Account
     </MudText>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">@_errorMessage</MudAlert>
+    }
     
-    <MudTextField @bind-Value="_registerDto.Username" 
-                  For="@(() => _registerDto.Username)"
-                  Required="true"
+    <MudTextField @bind-Value="RegisterModel.Username" 
+                  For="@(() => RegisterModel.Username)"
+                  name="RegisterModel.Username"
                   Placeholder="Username" 
                   Variant="Variant.Outlined" 
                   Margin="Margin.Dense" 
                   Class="mb-4" />
 
-    <MudTextField @bind-Value="_registerDto.Email" 
-                  For="@(() => _registerDto.Email)"
-                  Required="true"
+    <MudTextField @bind-Value="RegisterModel.Email" 
+                  For="@(() => RegisterModel.Email)"
+                  name="RegisterModel.Email"
                   Placeholder="Email" 
                   Variant="Variant.Outlined" 
                   Margin="Margin.Dense" 
                   Class="mb-4" />
 
-    <MudTextField @bind-Value="_registerDto.Password" 
-                  For="@(() => _registerDto.Password)"
-                  Required="true"
+    <MudTextField @bind-Value="RegisterModel.Password" 
+                  For="@(() => RegisterModel.Password)"
+                  name="RegisterModel.Password"
                   Placeholder="Password" 
                   InputType="InputType.Password" 
                   Variant="Variant.Outlined" 
                   Margin="Margin.Dense" 
                   Class="mb-6" />
-    <MudTextField @bind-Value="_registerDto.ConfirmPassword" 
-                  For="@(() => _registerDto.ConfirmPassword)"
-                  Required="true"
+
+    <MudTextField @bind-Value="RegisterModel.ConfirmPassword" 
+                  For="@(() => RegisterModel.ConfirmPassword)"
+                  name="RegisterModel.ConfirmPassword"
                   Placeholder="Confirm Password" 
                   InputType="InputType.Password" 
                   Variant="Variant.Outlined" 
@@ -59,10 +72,58 @@
 
 @code
 {
-    private CreateUserDto _registerDto = new();
+    [SupplyParameterFromForm]
+    private CreateUserDto RegisterModel { get; set; }
+    
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+    
+    private string? _errorMessage;
 
-    private async Task HandleRegistration()
+    protected override void OnInitialized()
     {
-        Console.WriteLine($"Registration complete!");
+        // 1. Always initialize the model for the EditForm
+        RegisterModel ??= new();
+
+        // 2. Redirect if already logged in to prevent Antiforgery errors
+        if (HttpContext?.User.Identity?.IsAuthenticated == true)
+        {
+            NavManager.NavigateTo("/chat");
+        }
+    }
+    
+    private async Task RegisterUser()
+    {
+        _errorMessage = null;
+
+        // 1. Check if user/email already exists
+        var existingUser = await DbContext.Users
+            .AnyAsync(u => u.Email.ToLower() == RegisterModel.Email.ToLower() || 
+                           u.Username.ToLower() == RegisterModel.Username.ToLower());
+
+        if (existingUser)
+        {
+            _errorMessage = "Username or Email is already taken.";
+            return;
+        }
+
+        // 2. Map DTO to Entity
+        var newUser = new User
+        {
+            Username = RegisterModel.Username,
+            Email = RegisterModel.Email,
+            Status = UserStatus.Online
+        };
+
+        // 3. Hash the password securely
+        var passwordHasher = new PasswordHasher<User>();
+        newUser.PasswordHash = passwordHasher.HashPassword(newUser, RegisterModel.Password);
+
+        // 4. Save to Database
+        DbContext.Users.Add(newUser);
+        await DbContext.SaveChangesAsync();
+
+        // 5. Redirect to Login (or automatically log them in)
+        NavManager.NavigateTo("/");
     }
 }

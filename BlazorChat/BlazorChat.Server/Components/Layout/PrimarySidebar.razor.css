@@ -37,6 +37,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding-bottom: 80px;
 }
 
 .list-item {
@@ -80,11 +81,12 @@
     position: absolute;
     bottom: -2px;
     right: -2px;
-    width: 10px;
-    height: 10px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
     border: 2px solid #fff;
 }
+
 .status.online { background-color: #23a559; }
 .status.idle { background-color: #f0b232; }
 .status.dnd { background-color: #f23f43; }

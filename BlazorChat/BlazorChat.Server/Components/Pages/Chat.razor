@@ -1,0 +1,114 @@
+@page "/chat"
+@using BlazorChat.Server.Data
+@using BlazorChat.Server.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AppDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<div class="chat-container">
+    <div class="message-scroll-container">
+        <div class="messages-list">
+            @foreach (var message in _messages)
+            {
+                <div class="message-row @(message.AuthorId == _currentUserId ? "is-me" : "")">
+                    <div class="message-avatar">
+                        @message.Author.Username[0]
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="author-name">@message.Author.Username</span>
+                            <span class="timestamp">@message.CreatedAt.ToString("h:mm tt")</span>
+                        </div>
+                        <div class="text">@message.Content</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="chat-input-wrapper">
+        <input type="text"
+               class="chat-input"
+               placeholder="Write message here..."
+               @bind-value="CurrentMessage"
+               @bind-value:event="oninput"
+               @onkeydown="HandleKeyPress"
+               disabled="@_isSending" />
+
+        <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                       Color="Color.Info" 
+                       OnClick="SendMessage" 
+                       Disabled="@(string.IsNullOrWhiteSpace(CurrentMessage) || _isSending)"
+                       Class="mx-2" />
+    </div>
+</div>
+
+@code {
+    private List<Message> _messages = new();
+    private int _currentUserId;
+    private string CurrentMessage { get; set; } = string.Empty;
+    private bool _isSending;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Get current user ID
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        int.TryParse(idClaim, out _currentUserId);
+
+        // 2. Load the last 50 messages from DB
+        _messages = await DbContext.Messages
+            .Include(m => m.Author) // Crucial: Brings in the Username/Avatar info
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(50)
+            .Reverse() // Order them oldest to newest for the list
+            .ToListAsync();
+    }
+    
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentMessage) || _isSending) return;
+
+        try 
+        {
+            _isSending = true;
+
+            var newMessage = new Message
+            {
+                Content = CurrentMessage,
+                AuthorId = _currentUserId,
+                CreatedAt = DateTime.UtcNow,
+                ChannelId = 1 // or your active channel ID
+            };
+
+            // Save to Database
+            DbContext.Messages.Add(newMessage);
+            await DbContext.SaveChangesAsync();
+
+            // Add to local list so it appears immediately
+            _messages.Add(newMessage);
+            
+            // CLEAR the input
+            CurrentMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+        finally 
+        {
+            _isSending = false;
+        }
+    }
+    
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        // Check for Enter key specifically
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+}

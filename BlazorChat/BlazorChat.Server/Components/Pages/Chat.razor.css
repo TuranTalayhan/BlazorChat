@@ -2,21 +2,29 @@
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: #ffffff;
+    border-radius: 10px;
+    margin-top: auto;
+    height: 92vh;
+}
+
+.message-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    min-height: 0; 
+    padding: 20px;
 }
 
 /* Scrollable message area */
 .messages-list {
-    flex-grow: 1;
-    overflow-y: auto;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Pushes messages to the bottom like the mockup */
+    flex-direction: column; /* Messages still flow top-to-bottom internally */
     gap: 15px;
-    margin-bottom: 20px;
+    padding-right: 10px; /* Space for the scrollbar */
 }
 
 /* Individual message styling */
@@ -28,6 +36,7 @@
     max-width: 80%;
     font-size: 0.95rem;
     color: #333;
+    align-content: end;
 }
 
 /* The bottom input row */
@@ -35,7 +44,7 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 10px; /* Slight padding from the absolute bottom */
+    margin-bottom: 10px;
 }
 
 /* The text box */
@@ -47,6 +56,7 @@
     font-size: 1rem;
     outline: none;
     transition: border-color 0.2s ease;
+    justify-content: end;
 }
 
 .chat-input:focus {
@@ -73,4 +83,51 @@
 .send-button svg {
     width: 28px;
     height: 28px;
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+}
+
+.message-row {
+    display: flex;
+    gap: 12px;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    background: #5865F2; /* Discord blue */
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.author-name {
+    font-weight: 600;
+    color: #060607;
+}
+
+.timestamp {
+    font-size: 0.75rem;
+    color: #6a727f;
+}
+
+.text {
+    line-height: 1.4;
+    word-break: break-word;
 }

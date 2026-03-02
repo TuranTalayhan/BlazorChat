@@ -1,0 +1,179 @@
+@using BlazorChat.Server.Components.Shared
+@using BlazorChat.Server.Data
+@using BlazorChat.Server.Data.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject IDialogService DialogService
+@inject AppDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+<div class="top-chat-bar">
+    @* Left section tabs logic here... *@
+
+    <div class="top-bar-actions">
+        @* Add Server Button *@
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   Class="ml-3 btn-pill px-4"
+                   StartIcon="@Icons.Material.Filled.AddBox"
+                   OnClick="OpenAddServerModal">
+            Add Server
+        </MudButton>
+
+        @* Add Friend Button *@
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Size="Size.Small"
+                   Class="ml-2 btn-pill px-4"
+                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                   OnClick="OpenAddFriendModal">
+            Add Friend
+        </MudButton>
+        <MudTooltip Text="Explore Servers">
+            <MudIconButton Icon="@Icons.Material.Filled.Explore" 
+                           Color="Color.Default" />
+        </MudTooltip>
+        @* --- Inbox Section --- *@
+<div class="inbox-container" style="position: relative; display: inline-block;">
+    <MudBadge Content="@_pendingRequests.Count" 
+              Overlap="true" 
+              Color="Color.Error" 
+              Visible="@(_pendingRequests.Count > 0)"
+              OffsetX="8" 
+              OffsetY="8"> 
+        <MudIconButton Icon="@Icons.Material.Filled.Inbox" 
+                       Color="Color.Default" 
+                       OnClick="@ToggleInbox" />
+    </MudBadge>
+
+    <MudPopover Open="@_isInboxOpen" 
+                Fixed="true" 
+                AnchorOrigin="Origin.BottomRight" 
+                TransformOrigin="Origin.TopRight" 
+                Class="pa-4 inbox-popover-panel"
+                Style="width: 300px; max-height: 400px; overflow-y: auto;">
+        
+        <div class="d-flex align-center justify-space-between mb-2">
+            <MudText Typo="Typo.subtitle2">Pending Requests</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _isInboxOpen = false)" />
+        </div>
+        
+        <MudDivider Class="mb-2" />
+
+        @if (!_pendingRequests.Any())
+        {
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="py-4">No new requests</MudText>
+        }
+        else
+        {
+            @foreach (var request in _pendingRequests)
+            {
+                <div class="d-flex align-center gap-3 py-2 border-bottom">
+                    <MudAvatar Size="Size.Small">@request.Requester.Username[0]</MudAvatar>
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600">@request.Requester.Username</MudText>
+                    </div>
+                    <div class="d-flex">
+                        <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" 
+                                       OnClick="@(() => HandleRequest(request, true))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small" 
+                                       OnClick="@(() => HandleRequest(request, false))" />
+                    </div>
+                </div>
+            }
+        }
+    </MudPopover>
+</div>
+        <div class="global-search mx-2">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="search-icon"/>
+            <input type="text" class="search-input" placeholder="Search..."/>
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    private List<Friendship> _pendingRequests = new();
+    private int _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPendingRequests();
+    }
+    
+    private bool _isInboxOpen;
+
+    private void ToggleInbox()
+    {
+        _isInboxOpen = !_isInboxOpen;
+        Console.WriteLine($"Inbox toggled: {_isInboxOpen}");
+    }
+
+    private async Task LoadPendingRequests()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId))
+        {
+            _pendingRequests = await DbContext.Friendships
+                .Include(f => f.Requester)
+                .Where(f => f.ReceiverId == _currentUserId && f.Status == FriendshipStatus.Pending)
+                .ToListAsync();
+        }
+    }
+
+    private async Task HandleRequest(Friendship request, bool accept)
+    {
+        if (accept)
+        {
+            request.Status = FriendshipStatus.Accepted;
+            DbContext.Friendships.Update(request);
+            Snackbar.Add($"Accepted {request.Requester.Username}'s request!", Severity.Success);
+        }
+        else
+        {
+            DbContext.Friendships.Remove(request);
+            Snackbar.Add("Request declined.", Severity.Info);
+        }
+
+        await DbContext.SaveChangesAsync();
+        await LoadPendingRequests(); // Refresh the list
+    }
+    
+    
+    private readonly DialogOptions _defaultOptions = new() 
+    { 
+        CloseOnEscapeKey = true, 
+        MaxWidth = MaxWidth.ExtraSmall, 
+        FullWidth = true,
+        CloseButton = true
+    };
+
+    private async Task OpenAddFriendModal()
+    {
+        Console.WriteLine("Open Friend Server");
+        var dialog = await DialogService.ShowAsync<AddFriendModal>("Add Friend", _defaultOptions);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string username)
+        {
+            // logic to send friend request
+            Console.WriteLine($"Request sent to {username}");
+        }
+    }
+
+    private async Task OpenAddServerModal()
+    {
+        Console.WriteLine("Open Add Server");
+        var dialog = await DialogService.ShowAsync<AddServerModal>("Create Server", _defaultOptions);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string serverName)
+        {
+            // logic to create server in DB
+            Console.WriteLine($"Server '{serverName}' created");
+        }
+    }
+}

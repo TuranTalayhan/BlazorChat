@@ -1,4 +1,17 @@
 @using BlazorChat.Server.Components.Shared
+@using BlazorChat.Server.Data
+@using BlazorChat.Server.Data.Entities
+@using BlazorChat.Shared.DTO
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+@inject AppDbContext DbContext
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
 <nav class="primary-nav">
     <div class="nav-tabs">
         <button class="tab @(IsDirectMessageMode ? "" : "active")" @onclick="() => SetMode(false)">SERVERS</button>
@@ -26,96 +39,64 @@
     }
 
     <div class="nav-list">
-        @foreach(var item in FilteredList)
+        @foreach(var friend in FilteredFriendsList)
         {
             <div class="list-item">
                 <div class="avatar">
-                    @if (IsDirectMessageMode)
-                    {
-                        <div class="status @item.Status"></div>
-                    }
-                    else
-                    {
-                        @* Use the first letter of the server name for the avatar *@
-                        <span>@item.Name.Substring(0,1)</span> 
-                    }
+                    @* Use the first letter of their username *@
+                    <span>@(friend.Username.ToUpper()[0])</span>
+                    <div class="status @GetStatusClass(friend.Status)"></div>
                 </div>
-                <span class="name">@item.Name</span>
+                <span class="name">@friend.Username</span>
             </div>
         }
-        
-        <button class="add-button" @onclick="() => ShowAddModal = true">+</button>
     </div>
     
     <UserProfileFooter />
 </nav>
 
-@if (ShowAddModal)
-{
-    <AddFriendModal OnClose="() => ShowAddModal = false" />
-}
-
 @code {
     [Parameter] public bool IsDirectMessageMode { get; set; } = true;
     [Parameter] public EventCallback<bool> IsDirectMessageModeChanged { get; set; }
 
-    private bool ShowAddModal = false;
     private string SearchTerm { get; set; } = string.Empty;
     private string ActiveStatusFilter { get; set; } = string.Empty;
-
-    // 1. The Class Definition
-    private class NavItem 
-    { 
-        public string Name { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty; 
-    }
-
-    // 2. The Mock Data
-    private List<NavItem> DmFriends = new()
+    private List<User> Friends { get; set; } = new();
+    
+    protected override async Task OnInitializedAsync()
     {
-        new NavItem { Name = "Alex", Status = "online" },
-        new NavItem { Name = "Morgan", Status = "idle" },
-        new NavItem { Name = "Taylor", Status = "dnd" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-        new NavItem { Name = "Jordan", Status = "offline" },
-    };
-
-    private List<NavItem> Servers = new()
-    {
-        new NavItem { Name = "Gaming Server", Status = "" },
-        new NavItem { Name = "Study Group", Status = "" },
-        new NavItem { Name = "Project Team", Status = "" }
-    };
-
-    // 3. The Filter Logic
-    private IEnumerable<NavItem> FilteredList => IsDirectMessageMode
-        ? DmFriends.Where(f => 
-            (string.IsNullOrWhiteSpace(SearchTerm) || f.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrWhiteSpace(ActiveStatusFilter) || f.Status == ActiveStatusFilter)
-          )
-        : Servers.Where(s => string.IsNullOrWhiteSpace(SearchTerm) || s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
-
-    // 4. The UI Control Methods
-    private void ToggleStatusFilter(string status)
-    {
-        if (ActiveStatusFilter == status)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var claimsUser = authState.User;
+        
+        if (claimsUser.Identity is { IsAuthenticated: true })
         {
-            ActiveStatusFilter = string.Empty; // Turn off if already active
-        }
-        else
-        {
-            ActiveStatusFilter = status; // Switch to the new filter
+            var userIdString = claimsUser.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+            if (int.TryParse(userIdString, out var currentUserId))
+            {
+                // 2. Query the DB, filter by ID, and convert to List
+                Friends = await DbContext.Friendships
+                    .Where(f => (f.RequesterId == currentUserId || f.ReceiverId == currentUserId) 
+                                && f.Status == FriendshipStatus.Accepted)
+                    .Select(f => f.RequesterId == currentUserId ? f.Receiver : f.Requester)
+                    .ToListAsync();
+            }
         }
     }
+    
+    private string GetStatusClass(UserStatus status) => status switch
+    {
+        UserStatus.Online => "online",
+        UserStatus.Idle => "idle",
+        UserStatus.DoNotDisturb => "dnd",
+        _ => "offline"
+    };
 
+    private IEnumerable<User> FilteredFriendsList => Friends.Where(f =>
+        (string.IsNullOrWhiteSpace(SearchTerm) || f.Username.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(ActiveStatusFilter) || f.Status != UserStatus.Offline)
+    );
+    
     private async Task SetMode(bool isDm)
     {
         IsDirectMessageMode = isDm;
@@ -125,4 +106,5 @@
         // Notify the parent layout that the mode has changed
         await IsDirectMessageModeChanged.InvokeAsync(isDm);
     }
+
 }

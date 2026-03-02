@@ -1,24 +1,41 @@
 @page "/"
+
+@using System.Security.Claims
+@using BlazorChat.Server.Data
+@using BlazorChat.Server.Data.Entities
 @using BlazorChat.Shared.DTO
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @layout AuthLayout
 
-<EditForm Model="@LoginModel" OnValidSubmit="LoginUser">
-    
+@inject AppDbContext DbContext
+@inject NavigationManager NavManager
+
+<EditForm Model="@LoginModel" OnValidSubmit="LoginUser" FormName="LoginForm">
     <DataAnnotationsValidator />
 
     <MudText Align="Align.Center" Class="font-weight-bold mb-6" Style="color: #333333;font-size: 2.5rem;">
         Welcome Back!
     </MudText>
     
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">@_errorMessage</MudAlert>
+    }
+    
     <MudTextField @bind-Value="LoginModel.Email" 
                   For="@(() => LoginModel.Email)"
-                  Placeholder="Email" 
+                  name="LoginModel.Email"
+                  Placeholder="Email or Username"
                   Variant="Variant.Outlined" 
                   Margin="Margin.Dense" 
                   Class="mb-4" />
 
     <MudTextField @bind-Value="LoginModel.Password" 
                   For="@(() => LoginModel.Password)"
+                  name="LoginModel.Password"
                   Placeholder="Password" 
                   InputType="InputType.Password" 
                   Variant="Variant.Outlined" 
@@ -50,12 +67,75 @@
 @code
 {
     [SupplyParameterFromForm]
-    public LoginDto LoginModel { get; set; } = new();
+    public LoginDto LoginModel { get; set; }
+    
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
 
+    private string _errorMessage = "";
+    
+    protected override void OnInitialized()
+    {
+        LoginModel ??= new();
+        
+        if (HttpContext?.User.Identity?.IsAuthenticated == true)
+        {
+            NavManager.NavigateTo("/chat", forceLoad: true);
+        }
+    }
+    
     private async Task LoginUser()
     {
-        // 1. Verify password in DB directly
-        // 2. Generate ClaimsPrincipal
-        // 3. Issue HTTP-Only Cookie using HttpContext.SignInAsync()
+        _errorMessage = "";
+        
+        // 1. FIND THE USER IN THE DATABASE
+        // We check if the input matches the Email OR the Username
+        var identifier = LoginModel.Email.ToLower().Trim();
+
+        var user = await DbContext.Users.FirstOrDefaultAsync(u => 
+            u.Email.ToLower() == identifier || 
+            u.Username.ToLower() == identifier);
+
+        if (user == null)
+        {
+            // We use a generic message so hackers don't know which part was wrong
+            _errorMessage = "Invalid credentials."; 
+            return;
+        }
+
+        // 2. VERIFY THE PASSWORD (stays the same)
+        var passwordHasher = new PasswordHasher<User>();
+        var verificationResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, LoginModel.Password);
+
+        if (verificationResult == PasswordVerificationResult.Failed)
+        {
+            _errorMessage = "Invalid credentials.";
+            return;
+        }
+
+        // 3. CREATE THE SECURITY TICKET (stays the same)
+        // Even if they logged in with email, we grab their actual Username from the DB for the claim
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString())
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        // 4. ISSUE THE HTTP-ONLY COOKIE
+        if (HttpContext != null)
+        {
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            
+            // 5. REDIRECT TO THE CHAT APP
+            NavManager.NavigateTo("/chat");
+        }
+        else
+        {
+            _errorMessage = "An internal error occurred. Please try again.";
+        }
     }
 }

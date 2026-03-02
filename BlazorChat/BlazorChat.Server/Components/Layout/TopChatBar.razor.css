@@ -1,0 +1,131 @@
+/* Container Layout */
+.top-chat-bar {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+/* Left/Center Section: Tabs */
+.top-bar-tabs {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.tabs-list {
+    display: flex;
+    gap: 8px;
+    height: 100%;
+    align-items: center;
+}
+
+.top-tab {
+    position: relative;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: #5f6368;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+}
+
+.top-tab:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #202124;
+}
+
+/* The Blue Underline for Active State */
+.top-tab.active {
+    color: #5c6bc0; /* Matching your primary blue */
+}
+
+.top-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: -18px; /* Aligns with the border-bottom of the container */
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #5c6bc0;
+    border-radius: 2px 2px 0 0;
+}
+
+/* Notification Badges */
+.tab-badge {
+    background-color: #f44336;
+    color: white;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Right Section: Actions & Search */
+.top-bar-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+::deep .mud-badge-wrapper {
+    /* Adjust these values until it sits exactly where you want */
+    top: 10px !important;
+    left: -10px !important;
+
+    /* Optional: Make the badge a bit smaller for a cleaner look */
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
+    padding: 0 4px;
+}
+
+.border-bottom {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.gap-3 {
+    gap: 12px;
+}
+
+.global-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #f1f3f4;
+    border-radius: 8px;
+    padding: 4px 12px;
+    width: 240px;
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+.search-icon {
+    font-size: 1.2rem !important;
+    color: #5f6368;
+}
+
+/* High-Contrast Add Friend Button */
+.btn-pill {
+    border-radius: 50px !important; /* Forces the pill shape */
+    text-transform: none !important;
+    font-weight: 600 !important;
+}

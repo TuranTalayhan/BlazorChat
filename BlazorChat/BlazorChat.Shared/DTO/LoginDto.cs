@@ -4,8 +4,7 @@ namespace BlazorChat.Shared.DTO
 {
     public class LoginDto
     {
-        [Required(ErrorMessage = "Email is required to log in.")]
-        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+        [Required(ErrorMessage = "Please enter your email or username.")]
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please enter your password.")]

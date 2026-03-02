@@ -1,0 +1,55 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AddBusiness" Class="mr-3 mb-n1"/>
+            Create Your Server
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4" Style="color: #666;">
+            Give your new server a personality with a name and an icon. You can always change this later.
+        </MudText>
+
+        <div class="d-flex flex-column align-center mb-6">
+            <MudBadge Color="Color.Primary" Overlap="true" Bordered="true" Icon="@Icons.Material.Filled.PhotoCamera" Placement="Placement.BottomRight">
+                <MudAvatar Style="height:80px; width:80px; font-size:2rem;" Color="Color.Default" Variant="Variant.Outlined">
+                    @(!string.IsNullOrWhiteSpace(_serverName) ? _serverName.Substring(0,1).ToUpper() : "S")
+                </MudAvatar>
+            </MudBadge>
+            <MudLink Typo="Typo.caption" Class="mt-2">Upload Icon</MudLink>
+        </div>
+
+        <MudTextField @bind-Value="_serverName" 
+                      Label="Server Name" 
+                      Variant="Variant.Outlined" 
+                      Placeholder="My Awesome Server" 
+                      Adornment="Adornment.Start" 
+                      AdornmentIcon="@Icons.Material.Filled.Dns"
+                      Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit" 
+                   Class="btn-pill px-6"
+                   DisableElevation="true"
+                   Disabled="@(string.IsNullOrWhiteSpace(_serverName))">
+            Create Server
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string? _serverName;
+
+    private void Submit()
+    {
+        // Add your logic to save the new server to the database here
+        MudDialog.Close(DialogResult.Ok(_serverName));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

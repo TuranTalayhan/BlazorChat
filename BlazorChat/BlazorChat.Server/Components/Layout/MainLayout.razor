@@ -1,19 +1,17 @@
 ﻿@inherits LayoutComponentBase
-
+<MudThemeProvider/>
 <div class="app-layout">
-    
-    @* We use @bind- to automatically sync the state between this layout and the sidebar *@
-    <PrimarySidebar @bind-IsDirectMessageMode="_isDirectMessageMode" />
-    
-    @if (!_isDirectMessageMode)
-    {
-        <aside class="secondary-nav">
-        </aside>
-    }
+        <PrimarySidebar @bind-IsDirectMessageMode="_isDirectMessageMode"/>
 
-    <main class="chat-area">
-        @Body
-    </main>
+        @if (!_isDirectMessageMode)
+        {
+            <aside class="secondary-nav"></aside>
+        }
+
+        <main class="chat-area">
+            <TopChatBar/>
+            @Body
+        </main>
 </div>
 
 @code {
