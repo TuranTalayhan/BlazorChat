@@ -1,4 +1,10 @@
 using BlazorChat.Server.Components;
+using BlazorChat.Server.Data;
+using BlazorChat.Server.Data.Entities;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 namespace BlazorChat.Server;
 
@@ -7,10 +13,24 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        
+        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.Cookie.Name = "auth_token";
+                options.LoginPath = "/"; // Where to send users if they aren't logged in
+                options.Cookie.MaxAge = TimeSpan.FromDays(7);
+            });
+        
+        builder.Services.AddAuthorization();
+        
         // Add services to the container.
+        builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddAntiforgery();
+        builder.Services.AddMudServices();
         builder.Services.AddRazorComponents()
-            .AddInteractiveWebAssemblyComponents();
+            .AddInteractiveServerComponents();
 
         var app = builder.Build();
 
@@ -28,14 +48,17 @@ public class Program
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
         app.UseHttpsRedirection();
-
+        
+        app.UseRouting();
         app.UseAntiforgery();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
-            .AddInteractiveWebAssemblyRenderMode()
+            .AddInteractiveServerRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
-
+        
         app.Run();
     }
 }

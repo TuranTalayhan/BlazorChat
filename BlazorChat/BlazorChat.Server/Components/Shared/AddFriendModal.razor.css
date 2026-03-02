@@ -1,0 +1,67 @@
+/* The dark background overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* The white modal box */
+.modal-content {
+    background-color: #ffffff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    width: 450px;
+    max-width: 90%;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #111;
+}
+
+/* Layout for the input and button side-by-side */
+.modal-input-group {
+    display: flex;
+    gap: 15px;
+}
+
+.modal-input {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.modal-input:focus {
+    border-color: #4a80e8;
+}
+
+.modal-submit-btn {
+    background-color: #3b71e8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-submit-btn:hover {
+    background-color: #2b5ac4;
+}

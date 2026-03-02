@@ -1,0 +1,13 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevents the main page scrollbars */
+}
+
+/* The root div of your Blazor app */
+#app {
+    height: 100vh;
+    display: flex;
+    flex-direction: row; /* Sidebar left, Chat right */
+}
