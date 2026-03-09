@@ -10,7 +10,7 @@ FROM nginx:alpine AS runtime
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
 # SPA fallback
-COPY BlazorChat.Client/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY BlazorChat/BlazorChat.Client/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

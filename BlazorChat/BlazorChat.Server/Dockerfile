@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # copy entrypoint and make it executable
-COPY BlazorChat.Server/entrypoint.sh /entrypoint.sh
+COPY BlazorChat/BlazorChat.Server/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENV ASPNETCORE_URLS=http://+:7138

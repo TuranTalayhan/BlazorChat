@@ -2,7 +2,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: BlazorChat.Server/Dockerfile
+      dockerfile: BlazorChat/BlazorChat.Server/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       # Allow client origins (host and internal service name)
@@ -27,7 +27,7 @@ services:
   client:
     build:
       context: .
-      dockerfile: BlazorChat.Client/Dockerfile
+      dockerfile: BlazorChat/BlazorChat.Client/Dockerfile
     ports:
       - "5173:80"
     depends_on:
