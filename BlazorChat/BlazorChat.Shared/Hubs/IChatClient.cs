@@ -1,6 +1,10 @@
+using System.Threading.Tasks;
+using BlazorChat.Shared.DTO;
+
 namespace BlazorChat.Shared.Hubs;
 
-public class IChatClient
+public interface IChatClient
 {
-    
+	Task UserStatusChanged(int userId, UserStatus status);
+	Task ReceiveMessage(MessageDto message);
 }

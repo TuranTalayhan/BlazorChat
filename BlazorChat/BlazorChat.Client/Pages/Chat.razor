@@ -1,0 +1,102 @@
+@page "/chat"
+@layout Layout.MainLayout
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ChatAuthStateProvider AuthProvider
+@implements IAsyncDisposable
+
+<div class="chat-container">
+    <div class="message-scroll-container">
+        <div class="messages-list">
+            @foreach (var message in _messages)
+            {
+                <div class="message-row @(message.AuthorId == _currentUserId ? "is-me" : "")">
+                    <div class="message-avatar">
+                        @message.AuthorUsername[0]
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="author-name">@message.AuthorUsername</span>
+                            <span class="timestamp">@message.CreatedAt.ToLocalTime().ToString("h:mm tt")</span>
+                        </div>
+                        <div class="text">@message.Content</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="chat-input-wrapper">
+        <input type="text"
+               class="chat-input"
+               placeholder="Write message here..."
+               @bind="@_currentMessage"
+               @bind:event="oninput"
+               @onkeydown="HandleKeyPress"
+               disabled="@_isSending" />
+
+        <MudIconButton Icon="@Icons.Material.Filled.Send"
+                       Color="Color.Info"
+                       OnClick="SendMessage"
+                       Disabled="@(string.IsNullOrWhiteSpace(_currentMessage) || _isSending)"
+                       Class="mx-2" />
+    </div>
+</div>
+
+@code {
+    private List<MessageDto> _messages = new();
+    private int _currentUserId;
+    private string _currentMessage = string.Empty;
+    private bool _isSending;
+    private HubConnection? _hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId);
+
+        var loaded = await Http.GetFromJsonAsync<List<MessageDto>>("api/messages?channelId=1");
+        if (loaded != null) _messages = loaded;
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/hubs/chat"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<MessageDto>("ReceiveMessage", msg =>
+        {
+            _messages.Add(msg);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_currentMessage) || _isSending) return;
+
+        _isSending = true;
+        try
+        {
+            var dto = new SendMessageDto { Content = _currentMessage, ChannelId = 1 };
+            await Http.PostAsJsonAsync("api/messages", dto);
+            _currentMessage = string.Empty;
+        }
+        finally
+        {
+            _isSending = false;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SendMessage();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+    }
+}

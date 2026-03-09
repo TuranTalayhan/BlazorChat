@@ -8,13 +8,13 @@ public class UserService(HttpClient httpClient) : IUserService
 {
     public async Task<List<UserDto>> GetUserAsync(int userId)
     {
-        return await httpClient.GetFromJsonAsync<List<UserDto>>($"api/users/{userId}") 
-               ?? [];
+        return await httpClient.GetFromJsonAsync<List<UserDto>>($"api/users/{userId}")
+               ?? new List<UserDto>();
     }
 
-    public void CreateUserAsync(CreateUserDto userDto)
+    public async Task CreateUserAsync(CreateUserDto userDto)
     {
-        var response = httpClient.PostAsJsonAsync($"api/register", userDto);
-        response.Result.EnsureSuccessStatusCode();
+        var response = await httpClient.PostAsJsonAsync($"api/register", userDto);
+        response.EnsureSuccessStatusCode();
     }
 }

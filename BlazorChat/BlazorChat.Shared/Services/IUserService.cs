@@ -5,5 +5,5 @@ namespace BlazorChat.Shared.Services;
 public interface IUserService
 {
     Task<List<UserDto>> GetUserAsync(int userId);
-    void CreateUserAsync(CreateUserDto createUserDto);
+    Task CreateUserAsync(CreateUserDto createUserDto);
 }

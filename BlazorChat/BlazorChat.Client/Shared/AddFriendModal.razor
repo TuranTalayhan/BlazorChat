@@ -1,0 +1,70 @@
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-3 mb-n1" />
+            Add Friend
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4" Style="color: #666;">
+            Start typing a username to see suggestions.
+        </MudText>
+        <MudAutocomplete T="string"
+                         Label="Username"
+                         @bind-Value="_username"
+                         SearchFunc="@SearchUsers"
+                         Variant="Variant.Outlined"
+                         Placeholder="Search for users..."
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Margin="Margin.Dense"
+                         ResetValueOnEmptyText="true"
+                         CoerceText="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success"
+                   Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Class="btn-pill px-6"
+                   Disabled="@(string.IsNullOrWhiteSpace(_username))">
+            Send Request
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    private string? _username;
+
+    private async Task<IEnumerable<string>> SearchUsers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length < 2)
+            return Enumerable.Empty<string>();
+
+        var results = await Http.GetFromJsonAsync<List<string>>($"api/users/search?q={Uri.EscapeDataString(value)}", token);
+        return results ?? Enumerable.Empty<string>();
+    }
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_username)) return;
+
+        var response = await Http.PostAsJsonAsync("api/friendships", _username);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Friend request sent!", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            Snackbar.Add("User not found.", Severity.Error);
+        else
+            Snackbar.Add("Relationship already exists or is pending.", Severity.Info);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

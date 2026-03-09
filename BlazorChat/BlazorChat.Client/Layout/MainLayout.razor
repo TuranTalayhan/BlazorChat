@@ -1,0 +1,23 @@
+@inherits LayoutComponentBase
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<div class="app-layout">
+    <PrimarySidebar @bind-IsDirectMessageMode="_isDirectMessageMode" />
+
+    @if (!_isDirectMessageMode)
+    {
+        <aside class="secondary-nav"></aside>
+    }
+
+    <main class="chat-area">
+        <TopChatBar />
+        @Body
+    </main>
+</div>
+
+@code {
+    private bool _isDirectMessageMode = true;
+}

@@ -1,0 +1,86 @@
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+
+<div class="user-footer">
+    <div class="user-info" @onclick="ToggleStatusPopover" style="cursor: pointer;">
+        <div class="avatar">
+            <span>@(_username?.ToUpper()[0])</span>
+            <div class="status @GetStatusClass(_currentStatus)"></div>
+        </div>
+        <div class="user-details">
+            <span class="username">@_username</span>
+            <span class="status-text">@GetStatusLabel(_currentStatus)</span>
+        </div>
+    </div>
+
+    <MudPopover Open="@_isStatusOpen"
+                AnchorOrigin="Origin.TopCenter"
+                TransformOrigin="Origin.BottomCenter"
+                Class="status-picker-popover pa-3"
+                Style="left: 10px;top:900px;">
+        <div class="status-circles-row">
+            <MudTooltip Text="Online" Placement="Placement.Top">
+                <div class="status-btn online" @onclick="@(() => UpdateStatus(UserStatus.Online))"></div>
+            </MudTooltip>
+            <MudTooltip Text="Idle" Placement="Placement.Top">
+                <div class="status-btn idle" @onclick="@(() => UpdateStatus(UserStatus.Idle))"></div>
+            </MudTooltip>
+            <MudTooltip Text="Do Not Disturb" Placement="Placement.Top">
+                <div class="status-btn dnd" @onclick="@(() => UpdateStatus(UserStatus.DoNotDisturb))"></div>
+            </MudTooltip>
+            <MudTooltip Text="Invisible" Placement="Placement.Top">
+                <div class="status-btn offline" @onclick="@(() => UpdateStatus(UserStatus.Offline))"></div>
+            </MudTooltip>
+        </div>
+    </MudPopover>
+
+    <div class="user-actions">
+        <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Filled.Mic" Class="icon-mic" AriaLabel="Microphone" />
+        <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Filled.Headset" Class="icon-headset" AriaLabel="Headset" />
+        <MudIconButton Edge="Edge.End" OnClick="OpenSettings" Icon="@Icons.Material.Filled.Settings" Class="icon-settings" AriaLabel="Settings" />
+    </div>
+</div>
+
+@code {
+    private bool _isStatusOpen;
+    private UserStatus _currentStatus = UserStatus.Online;
+    private string? _username;
+
+    private void ToggleStatusPopover() => _isStatusOpen = !_isStatusOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is { IsAuthenticated: true })
+            _username = user.Identity.Name;
+    }
+
+    private async Task UpdateStatus(UserStatus status)
+    {
+        _currentStatus = status;
+        await Http.PatchAsJsonAsync("api/users/me/status", new UpdateStatusDto { Status = status });
+        _isStatusOpen = false;
+    }
+
+    private string GetStatusClass(UserStatus status) => status switch
+    {
+        UserStatus.Online => "online",
+        UserStatus.Idle => "idle",
+        UserStatus.DoNotDisturb => "dnd",
+        _ => "offline"
+    };
+
+    private string GetStatusLabel(UserStatus status) => status switch
+    {
+        UserStatus.DoNotDisturb => "Do Not Disturb",
+        _ => status.ToString()
+    };
+
+    private void OpenSettings()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        DialogService.ShowAsync<SettingsModal>("Settings", options);
+    }
+}

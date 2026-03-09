@@ -61,3 +61,13 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Docker
+.dockerignore
+
+# Postgres local data volume (if ever mounted to a local folder)
+pgdata/
+
+# User secrets
+**/secrets.json
+appsettings.*.local.json
