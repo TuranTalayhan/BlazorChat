@@ -1,154 +1,82 @@
 .primary-nav {
-    width: 300px;
+    width: 72px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
     border-right: 1px solid #e0e0e0;
-    padding: 10px;
+    background-color: #f2f3f5;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.server-icons-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    overflow-y: auto;
+    width: 100%;
+    padding: 0 12px;
     box-sizing: border-box;
 }
 
-/* Tabs */
-.nav-tabs {
-    display: flex;
-    margin-bottom: 20px;
-}
-
-.tab {
-    flex: 1;
-    background: none;
-    border: none;
-    padding: 10px;
-    font-weight: bold;
-    font-size: 0.8rem;
-    color: #666;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-}
-
-.tab.active {
-    color: #5b5fc7;
-    border-bottom-color: #5b5fc7;
-}
-
-/* Nav List (Servers / DMs) */
-.nav-list {
-    flex-grow: 1;
-    overflow-y: auto;
+.server-icons-bottom {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-bottom: 80px;
-}
-
-.list-item {
-    display: flex;
     align-items: center;
-    background-color: #e8e8e8;
-    padding: 10px;
-    border-radius: 12px;
-    cursor: pointer;
+    gap: 8px;
+    padding: 8px 12px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.list-item.active {
-    background-color: #d0d0d0;
-}
-
-.add-button {
-    background-color: #f0f0f0;
-    border: none;
-    border-radius: 12px;
-    padding: 15px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    margin-top: 5px;
-}
-
-/* Avatars & Status Dots */
-.avatar {
-    width: 32px;
-    height: 32px;
-    background-color: #b0b0b0;
+.server-icon {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
+    background-color: #e3e5e8;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 10px;
-    position: relative;
-    font-size: 0.8rem;
-}
-
-.status {
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    border: 2px solid #fff;
-}
-
-.status.online { background-color: #23a559; }
-.status.idle { background-color: #f0b232; }
-.status.dnd { background-color: #f23f43; }
-.status.offline { background-color: #80848e; }
-
-/* --- SEARCH BAR --- */
-.search-container {
-    display: flex;
-    align-items: center;
-    background-color: #f2f2f2;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    transition: background-color 0.2s;
-}
-
-.search-container:focus-within {
-    background-color: #e8e8e8;
-    box-shadow: 0 0 0 2px rgba(74, 128, 232, 0.2);
-}
-
-::deep .search-icon {
-    width: 16px;
-    height: 16px;
-    color: #888;
-    margin-right: 10px;
-}
-
-.search-input {
-    flex-grow: 1;
-    background: none;
-    border: none;
-    outline: none;
-    font-size: 0.85rem;
-    color: #333;
-}
-
-.search-input::placeholder {
-    color: #888;
-}
-
-.segmented-control {
-    display: flex;
-    background-color: #e8e8e8;
-    border-radius: 8px;
-    padding: 4px;
-    margin-bottom: 15px;
-}
-.segment {
-    flex: 1;
-    border: none;
-    background: none;
-    padding: 6px 0;
-    font-size: 0.8rem;
-    color: #555;
     cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.2s, color 0.2s;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #333;
+    transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+    flex-shrink: 0;
 }
-.segment.active {
-    background-color: #ffffff;
-    color: #111;
-    font-weight: bold;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+.server-icon:hover {
+    border-radius: 30%;
+    background-color: #5b5fc7;
+    color: #fff;
+}
+
+.server-icon.active {
+    border-radius: 30%;
+    background-color: #5b5fc7;
+    color: #fff;
+}
+
+.server-icon.add-icon {
+    background-color: #eafaf0;
+    color: #23a559;
+}
+
+.server-icon.add-icon:hover {
+    background-color: #23a559;
+    color: #fff;
+    border-radius: 30%;
+}
+
+.server-divider {
+    width: 32px;
+    height: 2px;
+    background-color: #dde0e4;
+    border-radius: 1px;
+    margin: 4px 0;
+    flex-shrink: 0;
 }

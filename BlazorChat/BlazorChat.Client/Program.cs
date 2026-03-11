@@ -1,5 +1,6 @@
 using BlazorChat.Client;
 using BlazorChat.Client.Services;
+using BlazorChat.Shared.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -16,5 +17,7 @@ builder.Services.AddScoped<ChatAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<ChatAuthStateProvider>());
 builder.Services.AddAuthorizationCore();
 builder.Services.AddMudServices();
+builder.Services.AddScoped<IServerRepository, ServerRepository>();
+builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 
 await builder.Build().RunAsync();

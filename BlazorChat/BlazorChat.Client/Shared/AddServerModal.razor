@@ -1,4 +1,4 @@
-@inject HttpClient Http
+@inject IServerRepository ServerRepo
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -53,10 +53,9 @@
         _isSubmitting = true;
         try
         {
-            var response = await Http.PostAsJsonAsync("api/servers", new CreateServerDto { Name = _serverName });
-            if (response.IsSuccessStatusCode)
+            var server = await ServerRepo.CreateAsync(new CreateServerDto { Name = _serverName });
+            if (server != null)
             {
-                var server = await response.Content.ReadFromJsonAsync<ServerDto>();
                 MudDialog.Close(DialogResult.Ok(server));
             }
             else

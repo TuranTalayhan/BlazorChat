@@ -1,145 +1,62 @@
-@inject HttpClient Http
-@inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager NavManager
+@inject IServerRepository ServerRepo
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <nav class="primary-nav">
-    <div class="nav-tabs">
-        <button class="tab @(IsDirectMessageMode ? "" : "active")" @onclick="() => SetMode(false)">SERVERS</button>
-        <button class="tab @(IsDirectMessageMode ? "active" : "")" @onclick="() => SetMode(true)">FRIENDS</button>
-    </div>
-
-    <div class="search-container">
-        <MudIcon Icon="@Icons.Material.Filled.Search" Class="search-icon" />
-        <input type="text"
-               class="search-input"
-               placeholder="@(IsDirectMessageMode ? "Filter friends..." : "Filter servers...")"
-               @bind="SearchTerm"
-               @bind:event="oninput" />
-    </div>
-
-    @if (IsDirectMessageMode)
-    {
-        <div class="segmented-control">
-            <button class="segment @(string.IsNullOrEmpty(ActiveStatusFilter) ? "active" : "")"
-                    @onclick="@(() => ActiveStatusFilter = "")">All</button>
-            <button class="segment @(ActiveStatusFilter == "online" ? "active" : "")"
-                    @onclick="@(() => ActiveStatusFilter = "online")">Online</button>
-        </div>
-    }
-
-    <div class="nav-list">
-        @if (IsDirectMessageMode)
-        {
-            @foreach (var friend in FilteredFriendsList)
-            {
-                <div class="list-item">
-                    <div class="avatar">
-                        <span>@(friend.Username.ToUpper()[0])</span>
-                        <div class="status @GetStatusClass(friend.Status)"></div>
-                    </div>
-                    <span class="name">@friend.Username</span>
-                </div>
-            }
-        }
-        else
-        {
-            @foreach (var server in Servers)
-            {
-                <div>
-                    <div class="list-item" style="cursor:pointer;" @onclick="() => ToggleServer(server.Id)">
-                        <div class="avatar" style="background:#5865f2;">
-                            <span>@(server.Name.ToUpper()[0])</span>
-                        </div>
-                        <span class="name">@server.Name</span>
-                        <MudIcon Icon="@(ExpandedServerId == server.Id ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                 Style="margin-left:auto;font-size:1rem;" />
-                    </div>
-                    @if (ExpandedServerId == server.Id)
-                    {
-                        @if (ServerChannels.TryGetValue(server.Id, out var channels))
-                        {
-                            @foreach (var ch in channels)
-                            {
-                                <div class="list-item" style="padding-left:2rem;cursor:pointer;"
-                                     @onclick="@(() => NavToChannel(ch.Id))">
-                                    <span style="color:#96989d;margin-right:4px;">#</span>
-                                    <span class="name">@ch.Name</span>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="list-item" style="padding-left:2rem;color:#96989d;">
-                                <span>Loading...</span>
-                            </div>
-                        }
-                    }
-                </div>
-            }
-            <div class="list-item" style="cursor:pointer;margin-top:8px;" @onclick="OpenCreateServerModal">
-                <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Style="color:#96989d;margin-right:8px;" />
-                <span class="name" style="color:#96989d;">Create a Server</span>
+    <div class="server-icons-list">
+        <MudTooltip Text="Friends" Placement="Placement.Right">
+            <div class="server-icon @(SelectedServer == null ? "active" : "")"
+                 @onclick="() => SelectServer(null)">
+                <MudIcon Icon="@Icons.Material.Filled.People" />
             </div>
+        </MudTooltip>
+
+        <div class="server-divider"></div>
+
+        @foreach (var server in _servers)
+        {
+            <MudTooltip Text="@server.Name" Placement="Placement.Right">
+                <div class="server-icon @(SelectedServer?.Id == server.Id ? "active" : "")"
+                     @onclick="() => SelectServer(server)">
+                    @server.Name[0].ToString().ToUpper()
+                </div>
+            </MudTooltip>
         }
     </div>
 
-    <UserProfileFooter />
+    <div class="server-icons-bottom">
+        <MudTooltip Text="Create a Server" Placement="Placement.Right">
+            <div class="server-icon add-icon" @onclick="OpenCreateServerModal">
+                <MudIcon Icon="@Icons.Material.Filled.Add" />
+            </div>
+        </MudTooltip>
+    </div>
 </nav>
 
 @code {
-    [Parameter] public bool IsDirectMessageMode { get; set; } = true;
-    [Parameter] public EventCallback<bool> IsDirectMessageModeChanged { get; set; }
+    [Parameter] public ServerDto? SelectedServer { get; set; }
+    [Parameter] public EventCallback<ServerDto?> OnServerSelected { get; set; }
 
-    private void NavToChannel(int channelId) => NavManager.NavigateTo("/chat/" + channelId);
-
-    private string SearchTerm { get; set; } = string.Empty;
-    private string ActiveStatusFilter { get; set; } = string.Empty;
-    private List<FriendshipDto> Friends { get; set; } = new();
-    private List<ServerDto> Servers { get; set; } = new();
-    private Dictionary<int, List<ChannelDto>> ServerChannels { get; set; } = new();
-    private int? ExpandedServerId { get; set; }
+    private List<ServerDto> _servers = new();
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            var friends = await Http.GetFromJsonAsync<List<FriendshipDto>>("api/friendships");
-            Friends = friends ?? new();
-        }
-        catch (HttpRequestException) { }
+        ServerRepo.OnChanged += OnServersChanged;
+        _servers = await ServerRepo.GetAllAsync();
     }
 
-    private async Task LoadServers()
+    private async void OnServersChanged()
     {
-        try
-        {
-            var servers = await Http.GetFromJsonAsync<List<ServerDto>>("api/servers");
-            Servers = servers ?? new();
-            ServerChannels.Clear();
-            ExpandedServerId = null;
-        }
-        catch (HttpRequestException) { }
+        _servers = await ServerRepo.GetAllAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ToggleServer(int serverId)
+    public void Dispose() => ServerRepo.OnChanged -= OnServersChanged;
+
+    private async Task SelectServer(ServerDto? server)
     {
-        if (ExpandedServerId == serverId)
-        {
-            ExpandedServerId = null;
-            return;
-        }
-        ExpandedServerId = serverId;
-        if (!ServerChannels.ContainsKey(serverId))
-        {
-            try
-            {
-                var channels = await Http.GetFromJsonAsync<List<ChannelDto>>($"api/servers/{serverId}/channels");
-                ServerChannels[serverId] = channels ?? new();
-            }
-            catch (HttpRequestException) { ServerChannels[serverId] = new(); }
-        }
+        await OnServerSelected.InvokeAsync(server);
     }
 
     private async Task OpenCreateServerModal()
@@ -149,30 +66,7 @@
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
-            await LoadServers();
             Snackbar.Add("Server created!", Severity.Success);
         }
-    }
-
-    private string GetStatusClass(UserStatus status) => status switch
-    {
-        UserStatus.Online => "online",
-        UserStatus.Idle => "idle",
-        UserStatus.DoNotDisturb => "dnd",
-        _ => "offline"
-    };
-
-    private IEnumerable<FriendshipDto> FilteredFriendsList => Friends.Where(f =>
-        (string.IsNullOrWhiteSpace(SearchTerm) || f.Username.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrWhiteSpace(ActiveStatusFilter) || f.Status != UserStatus.Offline)
-    );
-
-    private async Task SetMode(bool isDm)
-    {
-        IsDirectMessageMode = isDm;
-        SearchTerm = string.Empty;
-        ActiveStatusFilter = string.Empty;
-        if (!isDm) await LoadServers();
-        await IsDirectMessageModeChanged.InvokeAsync(isDm);
     }
 }

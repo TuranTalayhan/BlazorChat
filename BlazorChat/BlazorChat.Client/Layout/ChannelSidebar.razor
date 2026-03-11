@@ -1,0 +1,141 @@
+@implements IDisposable
+@inject HttpClient Http
+@inject IChannelRepository ChannelRepo
+@inject NavigationManager NavManager
+
+<div class="channel-sidebar">
+    @if (SelectedServer == null)
+    {
+        <div class="channel-sidebar-header">Friends</div>
+
+        <div class="channel-search">
+            <input class="channel-search-input"
+                   placeholder="Filter friends..."
+                   @bind="_searchTerm"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="segmented-control">
+            <button class="segment @(IsActiveFilter(""))"
+                    @onclick="@(() => _statusFilter = string.Empty)">All</button>
+            <button class="segment @(IsActiveFilter("online"))"
+                    @onclick="@(() => _statusFilter = "online")">Online</button>
+        </div>
+
+        <div class="channel-list">
+            @foreach (var friend in FilteredFriends)
+            {
+                <div class="friend-item">
+                    <div class="avatar">
+                        <span>@friend.Username.ToUpper()[0]</span>
+                        <div class="status @GetStatusClass(friend.Status)"></div>
+                    </div>
+                    <span class="friend-name">@friend.Username</span>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="channel-sidebar-header">@SelectedServer.Name</div>
+
+        <div class="channel-list">
+            @if (_loadingChannels)
+            {
+                <div class="channel-empty">Loading...</div>
+            }
+            else if (_channels.Count == 0)
+            {
+                <div class="channel-empty">No channels yet</div>
+            }
+            else
+            {
+                @foreach (var ch in _channels)
+                {
+                    <div class="channel-item @(IsActiveChannel(ch.Id))"
+                         @onclick="() => NavToChannel(ch.Id)">
+                        <span class="channel-hash">#</span>
+                        <span>@ch.Name</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <UserProfileFooter />
+</div>
+
+@code {
+    [Parameter] public ServerDto? SelectedServer { get; set; }
+
+    private List<ChannelDto> _channels = new();
+    private List<FriendshipDto> _friends = new();
+    private bool _loadingChannels;
+    private int? _loadedServerId;
+    private int _activeChannelId;
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavManager.LocationChanged += OnLocationChanged;
+        UpdateActiveChannel();
+
+        try
+        {
+            var friends = await Http.GetFromJsonAsync<List<FriendshipDto>>("api/friendships");
+            _friends = friends ?? new();
+        }
+        catch (HttpRequestException) { }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedServer?.Id == _loadedServerId) return;
+        _loadedServerId = SelectedServer?.Id;
+        _channels = new();
+
+        if (SelectedServer != null)
+        {
+            _loadingChannels = true;
+            try
+            {
+                _channels = await ChannelRepo.GetByServerAsync(SelectedServer.Id);
+            }
+            finally { _loadingChannels = false; }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateActiveChannel();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateActiveChannel()
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(NavManager.Uri, @"/chat/(\d+)");
+        _activeChannelId = match.Success ? int.Parse(match.Groups[1].Value) : 0;
+    }
+
+    private IEnumerable<FriendshipDto> FilteredFriends => _friends.Where(f =>
+        (string.IsNullOrWhiteSpace(_searchTerm) || f.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(_statusFilter) || f.Status != UserStatus.Offline)
+    );
+
+    private void NavToChannel(int channelId) => NavManager.NavigateTo("/chat/" + channelId);
+
+    private string IsActiveChannel(int channelId) => _activeChannelId == channelId ? "active" : "";
+
+    private string IsActiveFilter(string filter) => _statusFilter == filter ? "active" : "";
+
+    private string GetStatusClass(UserStatus status) => status switch
+    {
+        UserStatus.Online => "online",
+        UserStatus.Idle => "idle",
+        UserStatus.DoNotDisturb => "dnd",
+        _ => "offline"
+    };
+
+    public void Dispose() => NavManager.LocationChanged -= OnLocationChanged;
+}

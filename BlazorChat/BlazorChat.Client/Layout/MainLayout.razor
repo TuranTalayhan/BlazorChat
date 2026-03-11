@@ -5,12 +5,8 @@
 <MudPopoverProvider />
 
 <div class="app-layout">
-    <PrimarySidebar @bind-IsDirectMessageMode="_isDirectMessageMode" />
-
-    @if (!_isDirectMessageMode)
-    {
-        <aside class="secondary-nav"></aside>
-    }
+    <PrimarySidebar SelectedServer="_selectedServer" OnServerSelected="OnServerSelected" />
+    <ChannelSidebar SelectedServer="_selectedServer" />
 
     <main class="chat-area">
         <TopChatBar />
@@ -19,5 +15,10 @@
 </div>
 
 @code {
-    private bool _isDirectMessageMode = true;
+    private ServerDto? _selectedServer;
+
+    private void OnServerSelected(ServerDto? server)
+    {
+        _selectedServer = server;
+    }
 }
