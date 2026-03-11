@@ -63,6 +63,7 @@ public class FriendshipsController(AppDbContext db) : ControllerBase
 
         var target = await db.Users.FirstOrDefaultAsync(u => u.Username == targetUsername);
         if (target == null) return NotFound(new { message = "User not found." });
+        if (target.Id == currentId) return BadRequest(new { message = "You cannot add yourself as a friend." });
 
         var exists = await db.Friendships.AnyAsync(f =>
             (f.RequesterId == currentId && f.ReceiverId == target.Id) ||

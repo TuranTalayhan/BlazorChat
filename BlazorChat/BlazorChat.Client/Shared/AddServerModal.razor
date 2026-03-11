@@ -1,3 +1,6 @@
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -32,7 +35,8 @@
                    OnClick="Submit"
                    Class="btn-pill px-6"
                    DisableElevation="true"
-                   Disabled="@(string.IsNullOrWhiteSpace(_serverName))">
+                   Disabled="@(string.IsNullOrWhiteSpace(_serverName) || _isSubmitting)">
+            @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
             Create Server
         </MudButton>
     </DialogActions>
@@ -41,7 +45,26 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     private string? _serverName;
+    private bool _isSubmitting;
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(_serverName));
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_serverName)) return;
+        _isSubmitting = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/servers", new CreateServerDto { Name = _serverName });
+            if (response.IsSuccessStatusCode)
+            {
+                var server = await response.Content.ReadFromJsonAsync<ServerDto>();
+                MudDialog.Close(DialogResult.Ok(server));
+            }
+            else
+            {
+                Snackbar.Add("Failed to create server.", Severity.Error);
+            }
+        }
+        finally { _isSubmitting = false; }
+    }
     private void Cancel() => MudDialog.Cancel();
 }

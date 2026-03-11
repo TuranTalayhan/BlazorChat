@@ -1,4 +1,5 @@
 @page "/chat"
+@page "/chat/{ChannelId:int}"
 @layout Layout.MainLayout
 @attribute [Authorize]
 @inject HttpClient Http
@@ -7,56 +8,67 @@
 @implements IAsyncDisposable
 
 <div class="chat-container">
-    <div class="message-scroll-container">
-        <div class="messages-list">
-            @foreach (var message in _messages)
-            {
-                <div class="message-row @(message.AuthorId == _currentUserId ? "is-me" : "")">
-                    <div class="message-avatar">
-                        @message.AuthorUsername[0]
-                    </div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="author-name">@message.AuthorUsername</span>
-                            <span class="timestamp">@message.CreatedAt.ToLocalTime().ToString("h:mm tt")</span>
-                        </div>
-                        <div class="text">@message.Content</div>
-                    </div>
-                </div>
-            }
+    @if (_loadedChannelId == 0)
+    {
+        <div class="no-channel-placeholder">
+            <MudIcon Icon="@Icons.Material.Filled.Forum" Style="font-size:3rem;color:#4f545c;" />
+            <p style="color:#96989d;margin-top:12px;">Select a channel to start chatting</p>
         </div>
-    </div>
-    <div class="chat-input-wrapper">
-        <input type="text"
-               class="chat-input"
-               placeholder="Write message here..."
-               @bind="@_currentMessage"
-               @bind:event="oninput"
-               @onkeydown="HandleKeyPress"
-               disabled="@_isSending" />
+    }
+    else
+    {
+        <div class="message-scroll-container">
+            <div class="messages-list">
+                @foreach (var message in _messages)
+                {
+                    <div class="message-row @(message.AuthorId == _currentUserId ? "is-me" : "")">
+                        <div class="message-avatar">
+                            @message.AuthorUsername[0]
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="author-name">@message.AuthorUsername</span>
+                                <span class="timestamp">@message.CreatedAt.ToLocalTime().ToString("h:mm tt")</span>
+                            </div>
+                            <div class="text">@message.Content</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="chat-input-wrapper">
+            <input type="text"
+                   class="chat-input"
+                   placeholder="Write message here..."
+                   @bind="@_currentMessage"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyPress"
+                   disabled="@_isSending" />
 
-        <MudIconButton Icon="@Icons.Material.Filled.Send"
-                       Color="Color.Info"
-                       OnClick="SendMessage"
-                       Disabled="@(string.IsNullOrWhiteSpace(_currentMessage) || _isSending)"
-                       Class="mx-2" />
-    </div>
+            <MudIconButton Icon="@Icons.Material.Filled.Send"
+                           Color="Color.Info"
+                           OnClick="SendMessage"
+                           Disabled="@(string.IsNullOrWhiteSpace(_currentMessage) || _isSending)"
+                           Class="mx-2" />
+        </div>
+    }
 </div>
 
 @code {
+    [Parameter] public int ChannelId { get; set; } = 0;
+
     private List<MessageDto> _messages = new();
     private int _currentUserId;
     private string _currentMessage = string.Empty;
     private bool _isSending;
     private HubConnection? _hubConnection;
+    private int _loadedChannelId;
+    private int _loadingChannelId; // tracks in-flight load to drop stale results
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthProvider.GetAuthenticationStateAsync();
         int.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId);
-
-        var loaded = await Http.GetFromJsonAsync<List<MessageDto>>("api/messages?channelId=1");
-        if (loaded != null) _messages = loaded;
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(NavManager.ToAbsoluteUri("/hubs/chat"))
@@ -72,6 +84,48 @@
         await _hubConnection.StartAsync();
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // No channel selected — show empty state without making any API calls
+        if (ChannelId <= 0)
+        {
+            if (_loadedChannelId > 0 && _hubConnection?.State == HubConnectionState.Connected)
+                await _hubConnection.SendAsync("LeaveChannel", _loadedChannelId);
+            _loadedChannelId = 0;
+            _messages = new();
+            return;
+        }
+
+        if (ChannelId == _loadedChannelId) return;
+
+        // Leave old group, join new group
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            if (_loadedChannelId > 0)
+                await _hubConnection.SendAsync("LeaveChannel", _loadedChannelId);
+            await _hubConnection.SendAsync("JoinChannel", ChannelId);
+        }
+
+        _loadedChannelId = ChannelId;
+        _loadingChannelId = ChannelId;
+        _messages = new();
+        try
+        {
+            var loaded = await Http.GetFromJsonAsync<List<MessageDto>>($"api/messages?channelId={ChannelId}");
+            // Drop result if another navigation happened while we were awaiting
+            if (_loadingChannelId == ChannelId && loaded != null)
+                _messages = loaded;
+        }
+        catch (HttpRequestException)
+        {
+            if (_loadingChannelId == ChannelId)
+            {
+                _loadedChannelId = 0;
+                _messages = new();
+            }
+        }
+    }
+
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(_currentMessage) || _isSending) return;
@@ -79,7 +133,7 @@
         _isSending = true;
         try
         {
-            var dto = new SendMessageDto { Content = _currentMessage, ChannelId = 1 };
+            var dto = new SendMessageDto { Content = _currentMessage, ChannelId = _loadedChannelId };
             await Http.PostAsJsonAsync("api/messages", dto);
             _currentMessage = string.Empty;
         }
@@ -97,6 +151,10 @@
     public async ValueTask DisposeAsync()
     {
         if (_hubConnection is not null)
+        {
+            if (_hubConnection.State == HubConnectionState.Connected && _loadedChannelId > 0)
+                await _hubConnection.SendAsync("LeaveChannel", _loadedChannelId);
             await _hubConnection.DisposeAsync();
+        }
     }
 }

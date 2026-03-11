@@ -16,39 +16,119 @@ namespace BlazorChat.Server.Controllers;
 [Authorize]
 public class MessagesController(AppDbContext db, IHubContext<ChatHub, IChatClient> hub) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetMessages([FromQuery] int channelId = 1, [FromQuery] int count = 50)
-    {
-        var messages = await db.Messages
-            .Include(m => m.Author)
-            .Where(m => m.ChannelId == channelId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(count)
-            .Select(m => new MessageDto
-            {
-                Id = m.Id,
-                Content = m.Content,
-                CreatedAt = m.CreatedAt,
-                AuthorId = m.AuthorId,
-                AuthorUsername = m.Author.Username,
-                ChannelId = m.ChannelId
-            })
-            .ToListAsync();
+    private int GetUserId() =>
+        int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
 
-        messages.Reverse();
-        return Ok(messages);
+    [HttpGet]
+    public async Task<IActionResult> GetMessages(
+        [FromQuery] int? channelId,
+        [FromQuery] int? directMessageId,
+        [FromQuery] int count = 50)
+    {
+        var userId = GetUserId();
+        if (userId == 0) return Unauthorized();
+
+        if (channelId.HasValue)
+        {
+            // Verify caller is a member of this channel's server
+            var isMember = await db.ServerMemberships
+                .AnyAsync(sm => sm.UserId == userId &&
+                                db.Channels.Any(c => c.Id == channelId && c.ServerId == sm.ServerId));
+            if (!isMember) return Forbid();
+
+            var messages = await db.Messages
+                .Include(m => m.Author)
+                .Where(m => m.ChannelId == channelId)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(count)
+                .Select(m => new MessageDto
+                {
+                    Id = m.Id,
+                    Content = m.Content,
+                    Type = (BlazorChat.Shared.DTO.MessageType)m.Type,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
+                    AuthorId = m.AuthorId,
+                    AuthorUsername = m.Author.Username,
+                    AuthorAvatarUrl = m.Author.AvatarUrl,
+                    ChannelId = m.ChannelId
+                })
+                .ToListAsync();
+
+            messages.Reverse();
+            return Ok(messages);
+        }
+
+        if (directMessageId.HasValue)
+        {
+            // Verify caller is a participant in this DM
+            var isDmParticipant = await db.DirectMessages
+                .AnyAsync(dm => dm.Id == directMessageId &&
+                               (dm.User1Id == userId || dm.User2Id == userId));
+            if (!isDmParticipant) return Forbid();
+
+            var messages = await db.Messages
+                .Include(m => m.Author)
+                .Where(m => m.DirectMessageId == directMessageId)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(count)
+                .Select(m => new MessageDto
+                {
+                    Id = m.Id,
+                    Content = m.Content,
+                    Type = (BlazorChat.Shared.DTO.MessageType)m.Type,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
+                    AuthorId = m.AuthorId,
+                    AuthorUsername = m.Author.Username,
+                    AuthorAvatarUrl = m.Author.AvatarUrl,
+                    DirectMessageId = m.DirectMessageId
+                })
+                .ToListAsync();
+
+            messages.Reverse();
+            return Ok(messages);
+        }
+
+        return BadRequest("Provide channelId or directMessageId.");
     }
 
     [HttpPost]
     public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto)
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
+        var userId = GetUserId();
+        if (userId == 0) return Unauthorized();
+
+        if (dto.ChannelId == null && dto.DirectMessageId == null)
+            return BadRequest("Provide channelId or directMessageId.");
+
+        string groupName;
+
+        if (dto.ChannelId.HasValue)
+        {
+            var isMember = await db.ServerMemberships
+                .AnyAsync(sm => sm.UserId == userId &&
+                                db.Channels.Any(c => c.Id == dto.ChannelId && c.ServerId == sm.ServerId));
+            if (!isMember) return Forbid();
+            groupName = $"channel:{dto.ChannelId}";
+        }
+        else
+        {
+            var isDmParticipant = await db.DirectMessages
+                .AnyAsync(dm => dm.Id == dto.DirectMessageId &&
+                               (dm.User1Id == userId || dm.User2Id == userId));
+            if (!isDmParticipant) return Forbid();
+            groupName = $"dm:{dto.DirectMessageId}";
+        }
+
+        var user = await db.Users.FindAsync(userId);
+        if (user == null) return Unauthorized();
 
         var message = new Message
         {
-            Content = dto.Content,
+            Content = dto.Content.Trim(),
             ChannelId = dto.ChannelId,
+            DirectMessageId = dto.DirectMessageId,
             AuthorId = userId,
             CreatedAt = DateTime.UtcNow
         };
@@ -62,11 +142,14 @@ public class MessagesController(AppDbContext db, IHubContext<ChatHub, IChatClien
             Content = message.Content,
             CreatedAt = message.CreatedAt,
             AuthorId = userId,
-            AuthorUsername = User.Identity?.Name ?? "",
-            ChannelId = message.ChannelId
+            AuthorUsername = user.Username,
+            AuthorAvatarUrl = user.AvatarUrl,
+            ChannelId = message.ChannelId,
+            DirectMessageId = message.DirectMessageId
         };
 
-        await hub.Clients.All.ReceiveMessage(messageDto);
+        await hub.Clients.Group(groupName).ReceiveMessage(messageDto);
         return Ok(messageDto);
     }
 }
+

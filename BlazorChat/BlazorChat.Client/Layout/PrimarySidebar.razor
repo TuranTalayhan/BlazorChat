@@ -1,5 +1,8 @@
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <nav class="primary-nav">
     <div class="nav-tabs">
@@ -27,14 +30,57 @@
     }
 
     <div class="nav-list">
-        @foreach (var friend in FilteredFriendsList)
+        @if (IsDirectMessageMode)
         {
-            <div class="list-item">
-                <div class="avatar">
-                    <span>@(friend.Username.ToUpper()[0])</span>
-                    <div class="status @GetStatusClass(friend.Status)"></div>
+            @foreach (var friend in FilteredFriendsList)
+            {
+                <div class="list-item">
+                    <div class="avatar">
+                        <span>@(friend.Username.ToUpper()[0])</span>
+                        <div class="status @GetStatusClass(friend.Status)"></div>
+                    </div>
+                    <span class="name">@friend.Username</span>
                 </div>
-                <span class="name">@friend.Username</span>
+            }
+        }
+        else
+        {
+            @foreach (var server in Servers)
+            {
+                <div>
+                    <div class="list-item" style="cursor:pointer;" @onclick="() => ToggleServer(server.Id)">
+                        <div class="avatar" style="background:#5865f2;">
+                            <span>@(server.Name.ToUpper()[0])</span>
+                        </div>
+                        <span class="name">@server.Name</span>
+                        <MudIcon Icon="@(ExpandedServerId == server.Id ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                 Style="margin-left:auto;font-size:1rem;" />
+                    </div>
+                    @if (ExpandedServerId == server.Id)
+                    {
+                        @if (ServerChannels.TryGetValue(server.Id, out var channels))
+                        {
+                            @foreach (var ch in channels)
+                            {
+                                <div class="list-item" style="padding-left:2rem;cursor:pointer;"
+                                     @onclick="@(() => NavToChannel(ch.Id))">
+                                    <span style="color:#96989d;margin-right:4px;">#</span>
+                                    <span class="name">@ch.Name</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="list-item" style="padding-left:2rem;color:#96989d;">
+                                <span>Loading...</span>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+            <div class="list-item" style="cursor:pointer;margin-top:8px;" @onclick="OpenCreateServerModal">
+                <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Style="color:#96989d;margin-right:8px;" />
+                <span class="name" style="color:#96989d;">Create a Server</span>
             </div>
         }
     </div>
@@ -46,9 +92,14 @@
     [Parameter] public bool IsDirectMessageMode { get; set; } = true;
     [Parameter] public EventCallback<bool> IsDirectMessageModeChanged { get; set; }
 
+    private void NavToChannel(int channelId) => NavManager.NavigateTo("/chat/" + channelId);
+
     private string SearchTerm { get; set; } = string.Empty;
     private string ActiveStatusFilter { get; set; } = string.Empty;
     private List<FriendshipDto> Friends { get; set; } = new();
+    private List<ServerDto> Servers { get; set; } = new();
+    private Dictionary<int, List<ChannelDto>> ServerChannels { get; set; } = new();
+    private int? ExpandedServerId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,9 +108,49 @@
             var friends = await Http.GetFromJsonAsync<List<FriendshipDto>>("api/friendships");
             Friends = friends ?? new();
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException) { }
+    }
+
+    private async Task LoadServers()
+    {
+        try
         {
-            // Not authenticated yet — ignore
+            var servers = await Http.GetFromJsonAsync<List<ServerDto>>("api/servers");
+            Servers = servers ?? new();
+            ServerChannels.Clear();
+            ExpandedServerId = null;
+        }
+        catch (HttpRequestException) { }
+    }
+
+    private async Task ToggleServer(int serverId)
+    {
+        if (ExpandedServerId == serverId)
+        {
+            ExpandedServerId = null;
+            return;
+        }
+        ExpandedServerId = serverId;
+        if (!ServerChannels.ContainsKey(serverId))
+        {
+            try
+            {
+                var channels = await Http.GetFromJsonAsync<List<ChannelDto>>($"api/servers/{serverId}/channels");
+                ServerChannels[serverId] = channels ?? new();
+            }
+            catch (HttpRequestException) { ServerChannels[serverId] = new(); }
+        }
+    }
+
+    private async Task OpenCreateServerModal()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddServerModal>("Create Server", options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadServers();
+            Snackbar.Add("Server created!", Severity.Success);
         }
     }
 
@@ -81,6 +172,7 @@
         IsDirectMessageMode = isDm;
         SearchTerm = string.Empty;
         ActiveStatusFilter = string.Empty;
+        if (!isDm) await LoadServers();
         await IsDirectMessageModeChanged.InvokeAsync(isDm);
     }
 }
