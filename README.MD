@@ -1,106 +1,133 @@
-# BlazorChat: Developer Documentation
+# BlazorChat
 
-This repository contains a real-time chat application built with Blazor Web App (Auto/Server), Entity Framework Core, and SignalR.
+Real-time chat app built with Blazor WebAssembly, ASP.NET Core, EF Core, PostgreSQL, and SignalR.
 
-## Prerequisites
+## What is in this repository
 
-Before managing the database, you must have the Entity Framework Core Tools installed on your machine. Run this command in your terminal:
+- `BlazorChat.Client` - Blazor WebAssembly frontend (MudBlazor UI)
+- `BlazorChat.Server` - ASP.NET Core Web API + SignalR hub + EF Core
+- `BlazorChat.Shared` - shared DTOs and hub contracts
 
-```bash
-dotnet tool install --global dotnet-ef
-```
+Target framework for all projects: `net10.0`.
 
-## Database Workflow (EF Core)
+## Architecture at a glance
 
-We use Migrations to keep the database schema in sync across different development environments.
+- Auth: cookie authentication (`auth_token`), issued by server auth endpoints.
+- API base path: `/api/*`.
+- SignalR hub: `/hubs/chat`.
+- Client-to-server networking:
+  - Client uses current browser origin as `HttpClient.BaseAddress`.
+  - In Docker, nginx proxies `/api/*` and `/hubs/*` from client container to server container.
+- Database: PostgreSQL (default in compose: `postgres:17`).
 
-### 1. Initial Setup
+## Quick start (Docker, recommended)
 
-If you have just cloned the repository and need to create your local database file (blazorchat.db):
-
-```bash
-# Navigate to the Server project
-cd BlazorChat.Server
-
-# Apply all migrations to create your local database
-dotnet ef database update
-```
-
-### 2. Changing the Schema
-
-Whenever you modify an Entity (e.g., adding a new property to User.cs or creating a Message.cs), follow these steps:
-
-```bash
-# 1. Generate the migration files (run from Solution root)
-dotnet ef migrations add <DescriptionOfChange> --project BlazorChat.Server
-
-# 2. Apply the change to your local database file
-dotnet ef database update --project BlazorChat.Server
-```
-
-### 3. Reverting Changes
-
-If you created a migration but haven't pushed it to Git yet and want to delete the files and revert the database snapshot:
-
-```bash
-dotnet ef migrations remove --project BlazorChat.Server
-```
-
-## Running client and server separately
-
-To run the backend and frontend as independent processes (recommended for separate deploys):
-
-- Start the server (API + SignalR hub):
-
-```bash
-dotnet run --project BlazorChat/BlazorChat.Server
-```
-
-- Start the client (Blazor WebAssembly dev host):
-
-```bash
-dotnet run --project BlazorChat/BlazorChat.Client
-```
-
-Configuration notes:
-
-- The client reads `ApiBaseUrl` from `wwwroot/appsettings.json` (defaults to `https://localhost:7138/`). Update it to point at your running server host.
-- The server exposes the SignalR hub at `/hubs/chat` and has a CORS policy named `AllowClient` that permits origins configured with the `ClientOrigins` setting. Set `ClientOrigins` in the server configuration to the client origin(s) (semicolon-separated) when hosting separately.
-- If you use cookie-based auth across different origins, prefer token-based auth (JWT) or configure cookie `Domain`/`SameSite` carefully.
-
-This repository also supports serving the client from the server (single-host) — see earlier project configuration if you prefer that setup.
-
-## Docker: run both services with docker-compose
-
-A docker-compose configuration is included to build and run the server and client together. From the repository root run:
+From repository root:
 
 ```bash
 docker compose up --build
 ```
 
-This will build two images and start:
+Services:
 
-- Server: exposed on `http://localhost:7138`
-- Client: served by nginx on `http://localhost:5173`
+- Client: `http://localhost:5173`
+- Server: `http://localhost:7138`
+- Postgres: internal service `postgres:5432`
 
-Notes:
+Stop:
 
-- The client Dockerfile injects an `ApiBaseUrl` pointing to the server service (`http://server:7138/`) at build time.
-- The server reads `ClientOrigins` from environment to configure CORS; the compose file sets common development origins.
-- If you prefer the server to serve the static client instead, revert the `ProjectReference` removal in `BlazorChat.Server.csproj` and restore the previous `Program.cs` mapping logic.
+```bash
+docker compose down
+```
 
-Docker Compose uses Postgres 17 for the database service; update credentials and version if you prefer a different PG release.
+Reset DB volume:
 
-Important: migrations
+```bash
+docker compose down -v
+```
 
-We removed the existing EF Core migrations (they were generated for SQLite). Since this project now targets Postgres, generate new migrations locally and apply them before running the app in production.
+## Run locally without Docker
 
-From the solution root run (once):
+Prerequisites:
+
+- .NET SDK 10
+- PostgreSQL instance reachable by the server
+
+1. Configure server connection string in `BlazorChat/BlazorChat.Server/appsettings.json` or environment variable `ConnectionStrings__DefaultConnection`.
+2. From repository root run server:
+
+```bash
+dotnet run --project BlazorChat/BlazorChat.Server
+```
+
+3. In another terminal run client:
+
+```bash
+dotnet run --project BlazorChat/BlazorChat.Client
+```
+
+4. Open the client URL shown by the client host (typically `http://localhost:5173`).
+
+## Development data behavior (important)
+
+When `ASPNETCORE_ENVIRONMENT=Development`, the server currently does this on startup:
+
+1. Deletes the existing database schema
+2. Recreates schema with `EnsureCreated()`
+3. Seeds demo users, friendships, server/channels, and messages
+
+This means any previous data is wiped each time the server starts in Development.
+
+Seeded users:
+
+- `alice@example.com` / `devpassword`
+- `bob@example.com` / `devpassword`
+- `carol@example.com` / `devpassword`
+
+## Configuration
+
+Key server settings:
+
+- `ConnectionStrings:DefaultConnection` - PostgreSQL connection string
+- `ClientOrigins` - allowed origins for CORS with credentials (array or `;`-separated string)
+
+Default compose values:
+
+- DB: `Host=postgres;Port=5432;Database=blazorchat;Username=postgres;Password=example`
+- Allowed origins: `http://localhost:5173;http://client:80`
+
+## API overview
+
+Main route groups:
+
+- `/api/auth` - register, login, logout, current user
+- `/api/servers` - list/create servers, list channels
+- `/api/friendships` - friends, pending requests, request/respond
+- `/api/dms` - list/open direct message conversations
+- `/api/messages` - fetch/send channel or DM messages
+- `/api/users` - user search, status updates
+
+For a concise endpoint reference, see `docs/DEVELOPMENT.md`.
+
+## Notes for production hardening
+
+Current code is developer-oriented. Before production use, at minimum:
+
+- Replace destructive Development DB initialization with migrations.
+- Move secrets and connection strings to secure environment configuration.
+- Review cookie settings (Secure, SameSite, domain) for deployed origins.
+- Add structured observability, health checks, and backup strategy.
+
+## Useful commands
+
+Build all projects:
+
+```bash
+dotnet build BlazorChat.slnx
+```
+
+Restore local tools (if you use EF CLI from tool manifest):
 
 ```bash
 dotnet tool restore
-dotnet ef migrations add InitialCreate --project BlazorChat/BlazorChat.Server --startup-project BlazorChat/BlazorChat.Server
-dotnet ef database update --project BlazorChat/BlazorChat.Server --startup-project BlazorChat/BlazorChat.Server
 ```
-
-This will create new, Postgres-targeted migrations and apply them. The server's startup will also call `Database.Migrate()` in Development to ensure migrations are applied.
