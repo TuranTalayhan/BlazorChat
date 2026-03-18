@@ -165,3 +165,31 @@
     color: #333;
     font-weight: 500;
 }
+
+.category-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    position: relative;
+}
+
+.category-item:hover {
+    background-color: #e5e5e5;
+    color: #111;
+    font-weight: 600;
+}
+
+.category-item.active {
+    background-color: #e5e5e5;
+    color: #111;
+    font-weight: 600;
+}
+
+.category-item.active .channel-name {
+    color: #5b5fc7;
+    font-weight: 600;
+}
+

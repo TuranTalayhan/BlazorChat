@@ -6,4 +6,6 @@ public class ChannelDto
     public string Name { get; set; } = string.Empty;
     public int ServerId { get; set; }
     public int SortOrder { get; set; }
+    
+    public CategoryDto Category { get; set; } = new();
 }

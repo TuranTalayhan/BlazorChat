@@ -50,13 +50,30 @@
             }
             else
             {
-                @foreach (var ch in _channels)
+                @foreach (var group in GroupedChannels)
                 {
-                    <div class="channel-item @(IsActiveChannel(ch.Id))"
-                         @onclick="() => NavToChannel(ch.Id)">
-                        <span class="channel-hash">#</span>
-                        <span>@ch.Name</span>
+                    <div class="category-item" @onclick="() => ToggleCategory(group.Key)">
+                        <span class="category-name">@(group.Key)</span>
+                        @if (ShouldExpand(group))
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Title="Arrow Down" />   
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowRight" Title="Arrow Right" />
+                        }
                     </div>
+                    @if (!_collapsedCategories.Contains(group.Key))
+                    {
+                        @foreach (var ch in group)
+                        {
+                            <div class="channel-item @(IsActiveChannel(ch.Id))"
+                                 @onclick="() => NavToChannel(ch.Id)">
+                                <span class="channel-hash">#</span>
+                                <span>@ch.Name</span>
+                            </div>
+                        }       
+                    }
                 }
             }
         </div>
@@ -75,6 +92,7 @@
     private int _activeChannelId;
     private string _searchTerm = string.Empty;
     private string _statusFilter = string.Empty;
+    private HashSet<string> _collapsedCategories = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,8 +111,50 @@
     {
         if (SelectedServer?.Id == _loadedServerId) return;
         _loadedServerId = SelectedServer?.Id;
-        _channels = new();
+        _channels =
+        [
+            new ChannelDto
+            {
+                Id = 1, Name = "welcome", SortOrder = 1,
+                Category = new CategoryDto { Id = 101, Name = "INFORMATION" }
+            },
 
+            new ChannelDto
+            {
+                Id = 2, Name = "rules", SortOrder = 2,
+                Category = new CategoryDto { Id = 101, Name = "INFORMATION" }
+            },
+
+            // Category: General
+
+            new ChannelDto
+            {
+                Id = 3, Name = "general", SortOrder = 1,
+                Category = new CategoryDto { Id = 102, Name = "TEXT CHANNELS" }
+            },
+
+            new ChannelDto
+            {
+                Id = 4, Name = "off-topic", SortOrder = 2,
+                Category = new CategoryDto { Id = 102, Name = "TEXT CHANNELS" }
+            },
+
+            // Category: Voice
+
+            new ChannelDto
+            {
+                Id = 5, Name = "Lounge", SortOrder = 1,
+                Category = new CategoryDto { Id = 103, Name = "VOICE CHANNELS" }
+            },
+
+            new ChannelDto
+            {
+                Id = 6, Name = "Gaming", SortOrder = 2,
+                Category = new CategoryDto { Id = 103, Name = "VOICE CHANNELS" }
+            }
+        ];
+        _loadingChannels = false;
+        /*
         if (SelectedServer != null)
         {
             _loadingChannels = true;
@@ -104,12 +164,21 @@
             }
             finally { _loadingChannels = false; }
         }
+        */
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         UpdateActiveChannel();
         InvokeAsync(StateHasChanged);
+    }
+    
+    private void ToggleCategory(string categoryName)
+    {
+        if (!_collapsedCategories.Add(categoryName))
+        {
+            _collapsedCategories.Remove(categoryName);
+        }
     }
 
     private void UpdateActiveChannel()
@@ -123,6 +192,9 @@
         (string.IsNullOrWhiteSpace(_statusFilter) || f.Status != UserStatus.Offline)
     );
 
+    private IEnumerable<IGrouping<string?, ChannelDto>> GroupedChannels => 
+        _channels.OrderBy(c => c.SortOrder).GroupBy(c => c.Category.Name);
+    
     private void NavToChannel(int channelId) => NavManager.NavigateTo("/chat/" + channelId);
 
     private string IsActiveChannel(int channelId) => _activeChannelId == channelId ? "active" : "";
@@ -138,4 +210,10 @@
     };
 
     public void Dispose() => NavManager.LocationChanged -= OnLocationChanged;
+
+    private bool ShouldExpand(IGrouping<string?, ChannelDto> group)
+    {
+        return !_collapsedCategories.Contains(group.Key);
+    }
+
 }
