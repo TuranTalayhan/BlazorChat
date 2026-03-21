@@ -16,7 +16,5 @@ public class MessageDto
     public int AuthorId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
     public string? AuthorAvatarUrl { get; set; }
-    // Exactly one of these will be set
-    public int? ChannelId { get; set; }
-    public int? DirectMessageId { get; set; }
+    public int ChannelId { get; set; }
 }

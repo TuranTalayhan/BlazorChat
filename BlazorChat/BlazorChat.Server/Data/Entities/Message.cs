@@ -22,14 +22,9 @@ public class Message
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
-
-    // Channel message FK (null for DMs)
-    public int? ChannelId { get; set; }
-    public Channel? Channel { get; set; }
-
-    // DM conversation FK (null for channel messages)
-    public int? DirectMessageId { get; set; }
-    public DirectMessage? DirectMessage { get; set; }
+    
+    public int ChannelId { get; set; }
+    public Channel Channel { get; set; } = null!;
 
     // Author
     public int AuthorId { get; set; }

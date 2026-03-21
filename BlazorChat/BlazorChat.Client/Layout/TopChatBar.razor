@@ -1,6 +1,7 @@
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject NavigationManager NavManager
 
 <div class="top-chat-bar">
     <div class="top-bar-actions">
@@ -84,10 +85,29 @@
 @code {
     private List<PendingFriendshipDto> _pendingRequests = new();
     private bool _isInboxOpen;
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadPendingRequests();
+        
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/hubs/chat"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection?.On<PendingFriendshipDto>("SendFriendRequest", async (dto) =>
+        {
+            await InvokeAsync(() =>
+            {
+                // Prevent duplicate entries if they spam the button
+                if (_pendingRequests.Any(r => r.RequesterId == dto.RequesterId)) return;
+                _pendingRequests.Insert(0, dto); // Add to top of list
+                Snackbar.Add($"New friend request from {dto.RequesterUsername}!", Severity.Info);
+                StateHasChanged();
+            });
+        });
+        if (_hubConnection != null) await _hubConnection.StartAsync();
     }
 
     private void ToggleInbox() => _isInboxOpen = !_isInboxOpen;
@@ -107,12 +127,23 @@
 
     private async Task HandleRequest(PendingFriendshipDto request, bool accept)
     {
-        await Http.PatchAsJsonAsync($"api/friendships/{request.RequesterId}", accept);
-        if (accept)
-            Snackbar.Add($"Accepted {request.RequesterUsername}'s request!", Severity.Success);
+        var response = await Http.PatchAsJsonAsync($"api/friendships/{request.RequesterId}", accept);
+    
+        if (response.IsSuccessStatusCode)
+        {
+            _pendingRequests.Remove(request);
+        
+            if (accept)
+                Snackbar.Add($"You are now friends with {request.RequesterUsername}!", Severity.Success);
+            else
+                Snackbar.Add("Request declined.", Severity.Info);
+            
+            if (!_pendingRequests.Any()) _isInboxOpen = false;
+        }
         else
-            Snackbar.Add("Request declined.", Severity.Info);
-        await LoadPendingRequests();
+        {
+            Snackbar.Add("Something went wrong. Please try again.", Severity.Error);
+        }
     }
 
     private readonly DialogOptions _defaultOptions = new()
@@ -133,5 +164,13 @@
     {
         var dialog = await DialogService.ShowAsync<AddServerModal>("Create Server", _defaultOptions);
         await dialog.Result;
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
     }
 }

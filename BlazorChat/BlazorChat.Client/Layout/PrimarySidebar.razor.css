@@ -3,7 +3,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 0;
+    padding: 8px 0;
     border-right: 1px solid #e0e0e0;
     background-color: #f2f3f5;
     box-sizing: border-box;
@@ -18,8 +18,14 @@
     flex-grow: 1;
     overflow-y: auto;
     width: 100%;
-    padding: 0 12px;
+    padding: 0 12px 60px;
     box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.server-icons-list::-webkit-scrollbar {
+    display: none;
 }
 
 .server-icons-bottom {

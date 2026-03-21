@@ -58,7 +58,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Already logged in? Skip login page.
         var state = await AuthProvider.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
             NavManager.NavigateTo("/chat");

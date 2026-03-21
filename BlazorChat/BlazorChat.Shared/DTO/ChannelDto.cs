@@ -3,8 +3,8 @@ namespace BlazorChat.Shared.DTO;
 public class ChannelDto
 {
     public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int ServerId { get; set; }
+    public string? Name { get; set; } = string.Empty;
+    public int? ServerId { get; set; }
     public int SortOrder { get; set; }
     
     public CategoryDto Category { get; set; } = new();

@@ -15,6 +15,13 @@ namespace BlazorChat.Server.Controllers;
 [Route("api/auth")]
 public class AuthController(AppDbContext db) : ControllerBase
 {
+    [HttpGet("status")]
+    [AllowAnonymous]
+    public IActionResult GetAuthStatus()
+    {
+        return Ok(new { IsAuthenticated = User.Identity?.IsAuthenticated ?? false });
+    }
+    
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
