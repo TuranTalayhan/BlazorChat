@@ -38,6 +38,7 @@
         </div>
         <div class="chat-input-wrapper">
             <input type="text"
+                   @ref="_messageInputRef"
                    class="chat-input"
                    placeholder="Write message here..."
                    @bind="@_currentMessage"
@@ -55,15 +56,16 @@
 </div>
 
 @code {
-    [Parameter] public int ChannelId { get; set; } = 0;
+    [Parameter] public int ChannelId { get; set; }
 
-    private List<MessageDto> _messages = new();
+    private List<MessageDto> _messages = [];
     private int _currentUserId;
     private string _currentMessage = string.Empty;
     private bool _isSending;
     private HubConnection? _hubConnection;
     private int _loadedChannelId;
     private int _loadingChannelId; // tracks in-flight load to drop stale results
+    private ElementReference _messageInputRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,8 +79,11 @@
 
         _hubConnection.On<MessageDto>("ReceiveMessage", msg =>
         {
-            _messages.Add(msg);
-            InvokeAsync(StateHasChanged);
+            if (msg.ChannelId == _loadedChannelId)
+            {
+                _messages.Add(msg);
+                InvokeAsync(StateHasChanged);
+            }
         });
 
         await _hubConnection.StartAsync();
@@ -92,7 +97,7 @@
             if (_loadedChannelId > 0 && _hubConnection?.State == HubConnectionState.Connected)
                 await _hubConnection.SendAsync("LeaveChannel", _loadedChannelId);
             _loadedChannelId = 0;
-            _messages = new();
+            _messages = [];
             return;
         }
 
@@ -108,11 +113,10 @@
 
         _loadedChannelId = ChannelId;
         _loadingChannelId = ChannelId;
-        _messages = new();
+        _messages = [];
         try
         {
-            var loaded = await Http.GetFromJsonAsync<List<MessageDto>>($"api/messages?channelId={ChannelId}");
-            // Drop result if another navigation happened while we were awaiting
+            var loaded = await Http.GetFromJsonAsync<List<MessageDto>>($"api/messages/{ChannelId}");
             if (_loadingChannelId == ChannelId && loaded != null)
                 _messages = loaded;
         }
@@ -121,7 +125,7 @@
             if (_loadingChannelId == ChannelId)
             {
                 _loadedChannelId = 0;
-                _messages = new();
+                _messages = [];
             }
         }
     }
@@ -140,6 +144,9 @@
         finally
         {
             _isSending = false;
+            StateHasChanged(); 
+            
+            await _messageInputRef.FocusAsync();
         }
     }
 

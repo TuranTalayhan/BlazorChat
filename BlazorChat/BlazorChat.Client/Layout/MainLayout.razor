@@ -3,17 +3,22 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
+<AuthorizeView>
+    <Authorized>
+        <div class="app-layout">
+            <PrimarySidebar SelectedServer="_selectedServer" OnServerSelected="OnServerSelected"/>
+            <ChannelSidebar SelectedServer="_selectedServer"/>
 
-<div class="app-layout">
-    <PrimarySidebar SelectedServer="_selectedServer" OnServerSelected="OnServerSelected" />
-    <ChannelSidebar SelectedServer="_selectedServer" />
-
-    <main class="chat-area">
-        <TopChatBar />
+            <main class="chat-area">
+                <TopChatBar/>
+                @Body
+            </main>
+        </div>
+    </Authorized>
+    <NotAuthorized>
         @Body
-    </main>
-</div>
-
+    </NotAuthorized>
+</AuthorizeView>
 @code {
     private ServerDto? _selectedServer;
 

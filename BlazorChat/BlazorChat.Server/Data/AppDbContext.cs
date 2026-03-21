@@ -3,20 +3,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<User> Users { get; set; }
     public DbSet<Friendship> Friendships { get; set; }
     public DbSet<ChatServer> Servers { get; set; }
     public DbSet<Channel> Channels { get; set; }
     public DbSet<ServerMembership> ServerMemberships { get; set; }
-    public DbSet<DirectMessage> DirectMessages { get; set; }
     public DbSet<Message> Messages { get; set; }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ── User ───────────────────────────────────────────────────────────────
@@ -46,17 +41,23 @@ public class AppDbContext : DbContext
             .HasOne(s => s.Owner)
             .WithMany()
             .HasForeignKey(s => s.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict); // don't wipe server when owner account deleted
+            .OnDelete(DeleteBehavior.Restrict); 
 
         // ── Channel ────────────────────────────────────────────────────────────
         modelBuilder.Entity<Channel>()
             .HasOne(c => c.Server)
             .WithMany(s => s.Channels)
             .HasForeignKey(c => c.ServerId)
-            .OnDelete(DeleteBehavior.Cascade);
-
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired(false);
+        
         modelBuilder.Entity<Channel>()
             .HasIndex(c => new { c.ServerId, c.SortOrder });
+
+        modelBuilder.Entity<Channel>()
+            .HasMany(c => c.Members)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("ChannelMembers"));
 
         // ── ServerMembership ───────────────────────────────────────────────────
         modelBuilder.Entity<ServerMembership>()
@@ -74,50 +75,21 @@ public class AppDbContext : DbContext
             .HasForeignKey(sm => sm.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // ── DirectMessage ──────────────────────────────────────────────────────
-        modelBuilder.Entity<DirectMessage>()
-            .HasOne(dm => dm.User1)
-            .WithMany()
-            .HasForeignKey(dm => dm.User1Id)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<DirectMessage>()
-            .HasOne(dm => dm.User2)
-            .WithMany()
-            .HasForeignKey(dm => dm.User2Id)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Ensure only one DM conversation per pair, regardless of order
-        modelBuilder.Entity<DirectMessage>()
-            .HasIndex(dm => new { dm.User1Id, dm.User2Id }).IsUnique();
-
         // ── Message ────────────────────────────────────────────────────────────
         modelBuilder.Entity<Message>()
             .HasOne(m => m.Author)
             .WithMany()
             .HasForeignKey(m => m.AuthorId)
-            .OnDelete(DeleteBehavior.Restrict); // keep messages if user deleted
+            .OnDelete(DeleteBehavior.Restrict); 
 
         modelBuilder.Entity<Message>()
             .HasOne(m => m.Channel)
             .WithMany(c => c.Messages)
             .HasForeignKey(m => m.ChannelId)
             .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired(false);
-
-        modelBuilder.Entity<Message>()
-            .HasOne(m => m.DirectMessage)
-            .WithMany(dm => dm.Messages)
-            .HasForeignKey(m => m.DirectMessageId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired(false);
-
-        // Index for fast channel message paging (most common query)
+            .IsRequired();
+        
         modelBuilder.Entity<Message>()
             .HasIndex(m => new { m.ChannelId, m.CreatedAt });
-
-        // Index for DM message paging
-        modelBuilder.Entity<Message>()
-            .HasIndex(m => new { m.DirectMessageId, m.CreatedAt });
     }
 }

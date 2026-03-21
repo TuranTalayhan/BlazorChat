@@ -18,7 +18,7 @@
                 AnchorOrigin="Origin.TopCenter"
                 TransformOrigin="Origin.BottomCenter"
                 Class="status-picker-popover pa-3"
-                Style="left: 10px;top:900px;">
+                Style="margin-left: -70px; margin-top: -5px">
         <div class="status-circles-row">
             <MudTooltip Text="Online" Placement="Placement.Top">
                 <div class="status-btn online" @onclick="@(() => UpdateStatus(UserStatus.Online))"></div>
@@ -47,14 +47,17 @@
     private UserStatus _currentStatus = UserStatus.Online;
     private string? _username;
 
-    private void ToggleStatusPopover() => _isStatusOpen = !_isStatusOpen;
 
+    private void ToggleStatusPopover() => _isStatusOpen = !_isStatusOpen;
+    
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity is { IsAuthenticated: true })
             _username = user.Identity.Name;
+        var userStatus = await Http.GetFromJsonAsync<ReceiveUserStatus>("api/users/me/status");
+        if (userStatus != null) _currentStatus = userStatus.Status;
     }
 
     private async Task UpdateStatus(UserStatus status)

@@ -14,6 +14,10 @@ public class ChatAuthStateProvider(HttpClient http) : AuthenticationStateProvide
     {
         try
         {
+            var status = await http.GetFromJsonAsync<StatusDto>("api/auth/status");
+            
+            if (status is { IsAuthenticated: false }) return new AuthenticationState(_anonymous);
+            
             var me = await http.GetFromJsonAsync<MeDto>("api/auth/me");
             if (me == null) return new AuthenticationState(_anonymous);
 

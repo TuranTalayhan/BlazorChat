@@ -1,5 +1,6 @@
 using BlazorChat.Server.Data;
 using BlazorChat.Server.Data.Entities;
+using BlazorChat.Server.Hubs;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -93,17 +94,17 @@ public class Program
                 await context.SaveChangesAsync();
 
                 // Seed a dev server with two channels
-                var devServer = new Data.Entities.ChatServer { Name = "Dev Server", OwnerId = alice.Id };
+                var devServer = new ChatServer { Name = "Dev Server", OwnerId = alice.Id };
                 context.Servers.Add(devServer);
                 await context.SaveChangesAsync();
 
-                var generalChannel = new Data.Entities.Channel { Name = "general", ServerId = devServer.Id, SortOrder = 0 };
-                var randomChannel  = new Data.Entities.Channel { Name = "random",  ServerId = devServer.Id, SortOrder = 1 };
+                var generalChannel = new Channel { Name = "general", ServerId = devServer.Id, SortOrder = 0 };
+                var randomChannel  = new Channel { Name = "random",  ServerId = devServer.Id, SortOrder = 1 };
                 context.Channels.AddRange(generalChannel, randomChannel);
 
                 context.ServerMemberships.AddRange(
-                    new Data.Entities.ServerMembership { ServerId = devServer.Id, UserId = alice.Id, Role = Data.Entities.ServerRole.Owner },
-                    new Data.Entities.ServerMembership { ServerId = devServer.Id, UserId = bob.Id,   Role = Data.Entities.ServerRole.Member }
+                    new ServerMembership { ServerId = devServer.Id, UserId = alice.Id, Role = ServerRole.Owner },
+                    new ServerMembership { ServerId = devServer.Id, UserId = bob.Id,   Role = ServerRole.Member }
                 );
                 await context.SaveChangesAsync();
 
@@ -112,15 +113,17 @@ public class Program
                     new Message { Content = "Hi Alice — glad to be here!", AuthorId = bob.Id, ChannelId = generalChannel.Id, CreatedAt = DateTime.UtcNow },
                     new Message { Content = "Anyone in #random?", AuthorId = alice.Id, ChannelId = randomChannel.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-5) }
                 );
-
-                // Seed a DM conversation between alice and bob
-                var dmConversation = new Data.Entities.DirectMessage { User1Id = alice.Id, User2Id = bob.Id };
-                context.DirectMessages.Add(dmConversation);
                 await context.SaveChangesAsync();
-
+                
+                var dmChannel = new Channel 
+                { 
+                    Type = ChannelType.DirectMessage, 
+                    Members = new List<User> { alice, bob }
+                };
+                context.Channels.Add(dmChannel);
+                await context.SaveChangesAsync();
                 context.Messages.Add(
-                    new Message { Content = "Hey Bob, DM works!", AuthorId = alice.Id, DirectMessageId = dmConversation.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-2) }
-                );
+                    new Message { Content = "Hey Bob, DM works!", AuthorId = alice.Id, ChannelId = dmChannel.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-2) }                );
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -135,7 +138,7 @@ public class Program
         app.UseAuthorization();
 
         app.MapControllers();
-        app.MapHub<Hubs.ChatHub>("/hubs/chat");
+        app.MapHub<ChatHub>("/hubs/chat");
 
         app.Run();
     }
