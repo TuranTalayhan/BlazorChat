@@ -1,0 +1,110 @@
+@inject IChannelRepository ChannelRepo
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<div class="channel-sidebar-header">@Server?.Name</div>
+
+<div class="channel-list">
+    @if (_loadingChannels)
+    {
+        <div class="channel-empty">Loading...</div>
+    }
+    else if (_channels.Count == 0)
+    {
+        <div class="channel-empty">No channels yet</div>
+    }
+    else
+    {
+        @foreach (var group in GroupedChannels)
+        {
+            <div class="category-item" @onclick="() => ToggleCategory(group.Key)">
+                <span class="category-name">@(group.Key)</span>
+                @if (ShouldExpand(group.Key))
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Title="Arrow Down" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowRight" Title="Arrow Right" />
+                }
+            </div>
+            @if (ShouldExpand(group.Key))
+            {
+                @foreach (var ch in group)
+                {
+                    <div class="channel-item @(IsActiveChannel(ch.Id))"
+                         @onclick="() => NavToChannel(ch.Id)">
+                        <span class="channel-hash">#</span>
+                        <span>@ch.Name</span>
+                    </div>
+                }
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
+
+    private List<ChannelDto> _channels = new();
+    private bool _loadingChannels;
+    private int _activeChannelId;
+    private HashSet<string> _collapsedCategories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavManager.LocationChanged += OnLocationChanged;
+        UpdateActiveChannel();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Fetch channels whenever the parent changes the Server parameter
+        if (Server != null)
+        {
+            _loadingChannels = true;
+            try
+            {
+                _channels = await ChannelRepo.GetByServerAsync(Server.Id);
+            }
+            finally
+            {
+                _loadingChannels = false;
+            }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateActiveChannel();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateActiveChannel()
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(NavManager.Uri, @"/chat/(\d+)");
+        _activeChannelId = match.Success ? int.Parse(match.Groups[1].Value) : 0;
+    }
+
+    private void ToggleCategory(string categoryName)
+    {
+        if (!_collapsedCategories.Add(categoryName))
+        {
+            _collapsedCategories.Remove(categoryName);
+        }
+    }
+
+    private bool ShouldExpand(string categoryKey) => !_collapsedCategories.Contains(categoryKey);
+
+    private IEnumerable<IGrouping<string, ChannelDto>> GroupedChannels =>
+        _channels.OrderBy(c => c.SortOrder).GroupBy(c => c.Category?.Name ?? "UNCATEGORIZED");
+
+    private void NavToChannel(int channelId) => NavManager.NavigateTo($"/chat/{channelId}");
+
+    private string IsActiveChannel(int channelId) => _activeChannelId == channelId ? "active" : "";
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}

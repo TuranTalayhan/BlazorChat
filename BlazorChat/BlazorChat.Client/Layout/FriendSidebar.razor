@@ -1,0 +1,122 @@
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<div class="channel-sidebar-header">Friends</div>
+
+<div class="channel-search">
+    <input class="channel-search-input"
+           placeholder="Filter friends..."
+           @bind="_searchTerm"
+           @bind:event="oninput" />
+</div>
+
+<div class="segmented-control">
+    <button class="segment @(IsActiveFilter(""))"
+            @onclick="@(() => _statusFilter = string.Empty)">All</button>
+    <button class="segment @(IsActiveFilter("online"))"
+            @onclick="@(() => _statusFilter = "online")">Online</button>
+</div>
+
+<div class="channel-list">
+    @foreach (var friend in FilteredFriends)
+    {
+        <div class="friend-item @(_activeFriendId == friend.FriendId ? "active" : "")" 
+             @onclick="@(() => OpenDmAsync(friend.FriendId))">
+            <div class="avatar">
+                <span>@friend.Username.ToUpper()[0]</span>
+                <div class="status @GetStatusClass(friend.Status)"></div>
+            </div>
+            <span class="friend-name">@friend.Username</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<int> OnDmOpened { get; set; }
+    private int _activeFriendId = 0;
+
+    private Dictionary<int, FriendshipDto> _friends = new();
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = string.Empty;
+    private HubConnection? _hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var friends = await Http.GetFromJsonAsync<List<FriendshipDto>>("api/friendships");
+            if (friends != null)
+            {
+                foreach (var friend in friends)
+                {
+                    _friends[friend.FriendId] = friend;
+                }
+            }
+        }
+        catch (HttpRequestException) { }
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/hubs/chat"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<ReceiveUserStatus>("UserStatusChanged", userStatus =>
+        {
+            if (!_friends.TryGetValue(userStatus.Id, out var friend)) return;
+            friend.Status = userStatus.Status;
+            InvokeAsync(StateHasChanged);
+        });
+        
+        _hubConnection.On<FriendshipDto>("NewFriendAdded", friend =>
+        {
+            _friends.Add(friend.FriendId, friend);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    private async Task OpenDmAsync(int friendId)
+    {
+        _activeFriendId = friendId; 
+        
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"api/channels/dm/{friendId}", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<int>();
+                if (result > 0)
+                {
+                    NavManager.NavigateTo($"/chat/{result}");
+                    await OnDmOpened.InvokeAsync(friendId); 
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to open DM: {ex.Message}");
+        }
+    }
+
+    private IEnumerable<FriendshipDto> FilteredFriends => _friends.Values.Where(f =>
+        (string.IsNullOrWhiteSpace(_searchTerm) || f.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(_statusFilter) || f.Status != UserStatus.Offline)
+    );
+
+    private string IsActiveFilter(string filter) => _statusFilter == filter ? "active" : "";
+
+    private string GetStatusClass(UserStatus status) => status switch
+    {
+        UserStatus.Online => "online",
+        UserStatus.Idle => "idle",
+        UserStatus.DoNotDisturb => "dnd",
+        _ => "offline"
+    };
+
+    public void Dispose()
+    {
+        _ = _hubConnection?.DisposeAsync();
+    }
+}
