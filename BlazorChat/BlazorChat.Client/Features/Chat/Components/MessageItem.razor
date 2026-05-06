@@ -1,0 +1,22 @@
+<div class="message-row @(IsMe ? "is-me" : "")">
+    <div class="message-avatar">
+        @* Display first letter of username as a placeholder avatar *@
+        @Message.AuthorUsername[0]
+    </div>
+    <div class="message-content">
+        <div class="message-header">
+            <span class="author-name">@Message.AuthorUsername</span>
+            <span class="timestamp">@Message.CreatedAt.ToLocalTime().ToString("h:mm tt")</span>
+        </div>
+        <div class="text">@Message.Content</div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter, EditorRequired] 
+    public MessageDto Message { get; set; } = null!;
+
+    [Parameter] 
+    public bool IsMe { get; set; }
+}

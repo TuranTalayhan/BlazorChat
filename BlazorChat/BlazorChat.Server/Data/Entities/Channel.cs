@@ -24,6 +24,9 @@ public class Channel
     public ChatServer? Server { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public int? CategoryId { get; set; }
+    public ChannelCategory? Category { get; set; }
 
     public ICollection<Message> Messages { get; set; } = new List<Message>();
     public ICollection<User> Members { get; set; } = new List<User>();

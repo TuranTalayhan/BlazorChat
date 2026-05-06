@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Friendship> Friendships { get; set; }
     public DbSet<ChatServer> Servers { get; set; }
     public DbSet<Channel> Channels { get; set; }
+    public DbSet<ChannelCategory> ChannelCategories { get; set; }
     public DbSet<ServerMembership> ServerMemberships { get; set; }
     public DbSet<Message> Messages { get; set; }
     
@@ -41,23 +42,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(s => s.Owner)
             .WithMany()
             .HasForeignKey(s => s.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict); 
-
-        // ── Channel ────────────────────────────────────────────────────────────
-        modelBuilder.Entity<Channel>()
-            .HasOne(c => c.Server)
-            .WithMany(s => s.Channels)
-            .HasForeignKey(c => c.ServerId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired(false);
+            .OnDelete(DeleteBehavior.Restrict);
         
-        modelBuilder.Entity<Channel>()
-            .HasIndex(c => new { c.ServerId, c.SortOrder });
+        // ── ChannelCategory ──────────────────────────────────────
+        modelBuilder.Entity<ChannelCategory>(entity =>
+        {
+            entity.HasOne(cc => cc.Server)
+                .WithMany(s => s.Categories)
+                .HasForeignKey(cc => cc.ServerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Channel>()
-            .HasMany(c => c.Members)
-            .WithMany()
-            .UsingEntity(j => j.ToTable("ChannelMembers"));
+            entity.HasIndex(cc => new { cc.ServerId, cc.SortOrder });
+        });
+        
+        // ── Channel ────────────────────────────────────────────────────────────
+        modelBuilder.Entity<Channel>(entity =>
+        {
+            entity.HasOne(c => c.Server)
+                .WithMany(s => s.Channels)
+                .HasForeignKey(c => c.ServerId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+
+            entity.HasOne(c => c.Category)
+                .WithMany(cc => cc.Channels)
+                .HasForeignKey(c => c.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(c => new { c.ServerId, c.SortOrder });
+            
+            entity.HasIndex(c => new { c.CategoryId, c.SortOrder });
+
+            entity.HasMany(c => c.Members)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("ChannelMembers"));
+        });
 
         // ── ServerMembership ───────────────────────────────────────────────────
         modelBuilder.Entity<ServerMembership>()

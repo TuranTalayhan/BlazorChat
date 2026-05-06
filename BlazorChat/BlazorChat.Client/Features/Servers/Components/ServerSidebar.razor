@@ -1,0 +1,83 @@
+@inject ServerChannelsViewModel ViewModel
+@using BlazorChat.Client.Features.Servers
+@using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory
+@using CreateChannelDialog = BlazorChat.Client.Features.Servers.Dialogs.CreateChannel.CreateChannelDialog
+@inject IDialogService DialogService
+@implements IDisposable
+
+<div class="channel-sidebar-header d-flex align-center justify-space-between px-4 py-2">
+    <MudText Typo="Typo.subtitle1" Class="fw-bold">@Server.Name</MudText>
+    <MudMenu Icon="@Icons.Material.Filled.KeyboardArrowDown" AnchorOrigin="Origin.BottomRight">
+        <MudMenuItem OnClick="OpenCreateCategoryDialog" Icon="@Icons.Material.Filled.CreateNewFolder">Create Category</MudMenuItem>
+        <MudMenuItem OnClick="@(() => OpenCreateChannelDialog())" Icon="@Icons.Material.Filled.AddCircle">Create Channel</MudMenuItem>
+    </MudMenu>
+</div>
+
+<div class="channel-list">
+    @if (ViewModel.IsLoading)
+    {
+        <div class="d-flex justify-center pa-4">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+        </div>
+    }
+    else if (!ViewModel.Channels.Any())
+    {
+        <div class="channel-empty pa-4 text-center">No channels yet</div>
+    }
+    else
+    {
+        @foreach (var ch in ViewModel.RootChannels)
+        {
+            <div class="channel-item @ViewModel.GetChannelClass(ch.Id)" @onclick="() => ViewModel.Navigate(ch.Id)">
+                <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
+                <span class="channel-name">@ch.Name</span>
+            </div>
+        }
+        
+        @foreach (var group in ViewModel.CategorizedGroups)
+        {
+            <div class="category-header d-flex align-center mt-2 px-2">
+                <div class="flex-grow-1 d-flex align-center cursor-pointer" @onclick="() => ViewModel.ToggleCategory(group.Key)">
+                    <MudIcon Icon="@(ViewModel.IsExpanded(group.Key) ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowRight)" 
+                             Size="Size.Small" Class="mr-1" />
+                    <MudText Typo="Typo.overline" Style="letter-spacing: 1px;">@group.Key.ToUpper()</MudText>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
+                               OnClick="@(() => OpenCreateChannelDialog(group.Key))" Class="pa-1" />
+            </div>
+
+            @if (ViewModel.IsExpanded(group.Key))
+            {
+                @foreach (var ch in group)
+                {
+                    <div class="channel-item @ViewModel.GetChannelClass(ch.Id)" @onclick="() => ViewModel.Navigate(ch.Id)">
+                        <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
+                        <span class="channel-name">@ch.Name</span>
+                    </div>
+                }
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
+
+    protected override async Task OnParametersSetAsync() 
+        => await ViewModel.InitializeAsync(Server.Id);
+
+    private async Task OpenCreateChannelDialog(string? category = null)
+    {
+        var parameters = new DialogParameters<CreateChannelDialog> { { x => x.ServerId, Server.Id }, { x => x.DefaultCategory, category } };
+        var dialog = await DialogService.ShowAsync<CreateChannelDialog>("New Channel", parameters);
+        if (!(await dialog.Result).Canceled) await ViewModel.LoadChannels(Server.Id);
+    }
+
+    private async Task OpenCreateCategoryDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("New Category");
+        if (!(await dialog.Result).Canceled) await ViewModel.LoadChannels(Server.Id);
+    }
+
+    public void Dispose() => ViewModel.Dispose();
+}

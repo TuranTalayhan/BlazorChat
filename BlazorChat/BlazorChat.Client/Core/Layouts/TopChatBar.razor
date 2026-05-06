@@ -1,0 +1,66 @@
+@using BlazorChat.Client.Features.Friends.Dialogs
+@using BlazorChat.Client.Features.Notifications.Components
+@using BlazorChat.Client.Features.Servers.Dialogs.AddServer
+@using BlazorChat.Client.ViewModels
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@implements IDisposable
+@inject TopBarViewModel ViewModel
+
+<div class="top-chat-bar">
+    <div class="top-bar-actions">
+        
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="OpenAddServer">
+            Add Server
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Success" 
+                   OnClick="OpenAddFriend">
+            Add Friend
+        </MudButton>
+
+        <MudTooltip Text="Explore Servers">
+            <MudIconButton Icon="@Icons.Material.Filled.Explore" Color="Color.Default" />
+        </MudTooltip>
+        
+        <div class="inbox-container">
+            <MudBadge Content="@ViewModel.PendingRequests.Count" Visible="@(ViewModel.PendingRequests.Count > 0)">
+                <MudIconButton Icon="@Icons.Material.Filled.Inbox" 
+                               OnClick="@(() => ViewModel.IsInboxOpen = !ViewModel.IsInboxOpen)" />
+            </MudBadge>
+            <NotificationInbox @bind-IsInboxOpen="@ViewModel.IsInboxOpen" />
+        </div>
+    </div>
+</div>
+
+@code 
+{
+    private readonly DialogOptions _standardOptions = new() { 
+        CloseOnEscapeKey = true, 
+        MaxWidth = MaxWidth.ExtraSmall, 
+        FullWidth = true, 
+        CloseButton = true 
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.OnChanged += StateHasChanged;
+        ViewModel.OnFriendRequestReceived += (user) => Snackbar.Add($"New request from {user}", Severity.Info);
+        
+        await ViewModel.InitializeAsync();
+    }
+
+    private void OpenAddServer() => 
+        DialogService.ShowAsync<CreateServerModal>("Create Server", _standardOptions);
+
+    private void OpenAddFriend() => 
+        DialogService.ShowAsync<AddFriendModal>("Add Friend", _standardOptions);
+
+    public void Dispose()
+    {
+        ViewModel.OnChanged -= StateHasChanged;
+    }
+}

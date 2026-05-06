@@ -10,7 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="Mediator.SourceGenerator" Version="3.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.3" />
@@ -22,7 +25,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\" />
+    <Folder Include="Features\Notifications\Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Features\Authentication\Login.razor" />
+    <AdditionalFiles Include="Features\Authentication\Logout.razor" />
+    <AdditionalFiles Include="Features\Authentication\Register.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\ChatArea\ChatFeed.razor" />
+    <_ContentIncludedByDefault Remove="Components\ChatArea\MessageBubble.razor" />
+    <_ContentIncludedByDefault Remove="Components\ChatArea\MessageInputBox.razor" />
+    <_ContentIncludedByDefault Remove="Components\ChatArea\TopHeader.razor" />
   </ItemGroup>
 
 </Project>

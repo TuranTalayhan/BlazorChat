@@ -1,0 +1,30 @@
+@using BlazorChat.Client.Features.Friends.Components
+@using BlazorChat.Client.Features.User.Components
+@inject NavigationState NavState
+@implements IDisposable
+
+<div class="channel-sidebar">
+    
+    @if (NavState.SelectedServer == null)
+    {
+        <FriendSidebar />
+    }
+    else
+    {
+        <ServerSidebar Server="NavState.SelectedServer"/>
+    }
+
+    <UserProfilePanel />
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavState.OnChanged += StateHasChanged;
+    }
+    
+    public void Dispose()
+    {
+        NavState.OnChanged -= StateHasChanged;
+    }
+}

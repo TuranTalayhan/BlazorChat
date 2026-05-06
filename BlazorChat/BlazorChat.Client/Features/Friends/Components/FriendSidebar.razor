@@ -1,0 +1,50 @@
+@inject FriendsSidebarViewModel ViewModel
+@using BlazorChat.Client.Features.Friends
+@implements IDisposable
+
+<div class="channel-sidebar-header">Friends</div>
+
+<div class="channel-search">
+    <input class="channel-search-input"
+           placeholder="Filter friends..."
+           @bind="ViewModel.SearchTerm"
+           @bind:event="oninput" />
+</div>
+
+<div class="segmented-control">
+    <button class="segment @(ViewModel.StatusFilter == "" ? "active" : "")"
+            @onclick='() => ViewModel.SetActiveFilter("")'>All</button>
+    <button class="segment @(ViewModel.StatusFilter == "online" ? "active" : "")"
+            @onclick='() => ViewModel.SetActiveFilter("online")'>Online</button>
+</div>
+
+<div class="channel-list">
+    @foreach (var friend in ViewModel.FilteredFriends)
+    {
+        <div class="friend-item @(ViewModel.ActiveFriendId == friend.FriendId ? "active" : "")" 
+             @onclick="@(() => ViewModel.OpenChatWithFriend(friend.FriendId))">
+            <div class="avatar">
+                <span>@friend.Username.ToUpper()[0]</span>
+                <div class="status @ViewModel.GetStatusClass(friend.Status)"></div>
+            </div>
+            <span class="friend-name">@friend.Username</span>
+        </div>
+    }
+</div>
+
+@code
+{
+    [Parameter] public EventCallback<int> OnDmOpened { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.OnStateChanged += StateHasChanged;
+        await ViewModel.InitializeAsync();
+    }
+
+    public void Dispose()
+    {
+        ViewModel.OnStateChanged -= StateHasChanged;
+        ViewModel.Dispose();
+    }
+}

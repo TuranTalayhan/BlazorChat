@@ -1,56 +1,26 @@
-using System.Security.Claims;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
+using BlazorChat.Server.Features.Channels;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Controllers;
 
 [ApiController]
 [Route("api/channels")]
 [Authorize]
-public class ChannelsController(AppDbContext db) : ControllerBase
+public class ChannelsController(IMediator mediator) : ControllerBase
 {
-    private int GetUserId() =>
-        int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
-
-    [HttpPost("dm/{friendId}")]
+    [HttpPost("dm/{friendId:int}")]
     public async Task<IActionResult> GetOrCreateDm(int friendId)
     {
-        var currentUserId = GetUserId();
-        if (currentUserId == 0) return Unauthorized();
-
-        if (currentUserId == friendId) 
-            return BadRequest("Cannot create a DM with yourself.");
-
-        var existingDmId = await db.Channels
-            .Where(c => c.Type == ChannelType.DirectMessage)
-            .Where(c => c.Members.Any(m => m.Id == currentUserId) && 
-                        c.Members.Any(m => m.Id == friendId))
-            .Select(c => c.Id)
-            .FirstOrDefaultAsync();
-        
-        if (existingDmId > 0)
+        try 
         {
-            return Ok(existingDmId);
+            var channelId = await mediator.Send(new GetOrCreateDmCommand(friendId));
+            return Ok(channelId);
         }
-
-        var currentUser = await db.Users.FindAsync(currentUserId);
-        var friendUser = await db.Users.FindAsync(friendId);
-
-        if (currentUser == null || friendUser == null)
-            return NotFound("User not found.");
-
-        var newDmChannel = new Channel
+        catch (Exception ex) 
         {
-            Type = ChannelType.DirectMessage,
-            Members = new List<User> { currentUser, friendUser }
-        };
-
-        db.Channels.Add(newDmChannel);
-        await db.SaveChangesAsync();
-
-        return Ok(newDmChannel.Id);
+            return NotFound(ex.Message);
+        }
     }
 }

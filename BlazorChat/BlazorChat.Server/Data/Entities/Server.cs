@@ -18,5 +18,8 @@ public class ChatServer
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Channel> Channels { get; set; } = new List<Channel>();
+    
+    public ICollection<ChannelCategory> Categories { get; set; } = new List<ChannelCategory>();
     public ICollection<ServerMembership> Members { get; set; } = new List<ServerMembership>();
+    
 }

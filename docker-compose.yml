@@ -1,20 +1,4 @@
 services:
-  server:
-    build:
-      context: .
-      dockerfile: BlazorChat/BlazorChat.Server/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      # Allow client origins (host and internal service name)
-      - ClientOrigins=http://localhost:5173;http://client:80
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=blazorchat;Username=postgres;Password=example
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-    ports:
-      - "7138:7138"
-    depends_on:
-      - postgres
-
   postgres:
     image: postgres:17
     environment:
@@ -25,17 +9,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-
-  client:
-    build:
-      context: .
-      dockerfile: BlazorChat/BlazorChat.Client/Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - server
-
-# By default you can access the client at http://localhost:5173 and the server at http://localhost:7138
 
 volumes:
   pgdata:

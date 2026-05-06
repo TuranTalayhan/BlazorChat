@@ -1,0 +1,56 @@
+@page "/chat"
+@page "/chat/{ChannelId:int}"
+@inject ChatViewModel ViewModel
+@using BlazorChat.Client.ViewModels
+@implements IDisposable
+
+<div class="chat-container">
+    @if (ViewModel.LoadedChannelId == 0)
+    {
+        <div class="no-channel-placeholder">
+            <MudIcon Icon="@Icons.Material.Filled.Forum" Style="font-size:3rem;color:#4f545c;" />
+            <p>Select a channel to start chatting</p>
+        </div>
+    }
+    else
+    {
+        <div class="message-scroll-container">
+            @foreach (var msg in ViewModel.Messages)
+            {
+                <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
+            }
+        </div>
+
+        <div class="chat-input-wrapper">
+            <input @ref="_inputRef" class="chat-input" @bind="ViewModel.CurrentMessage" 
+                   @bind:event="oninput" @onkeydown="HandleKey" disabled="@ViewModel.IsSending" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.Send" OnClick="ViewModel.SendAsync" 
+                           Disabled="@(string.IsNullOrWhiteSpace(ViewModel.CurrentMessage) || ViewModel.IsSending)" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int ChannelId { get; set; }
+    private ElementReference _inputRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.OnChanged += StateHasChanged;
+        await ViewModel.InitializeAsync();
+    }
+
+    protected override async Task OnParametersSetAsync() => await ViewModel.LoadChannelAsync(ChannelId);
+
+    private async Task HandleKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ViewModel.SendAsync();
+            await _inputRef.FocusAsync();
+        }
+    }
+
+    public void Dispose() => ViewModel.OnChanged -= StateHasChanged;
+}

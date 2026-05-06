@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+@inject NavigationState NavState
+@using BlazorChat.Client.Features.Servers.Components
+@implements IDisposable
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<AuthorizeView>
+    <Authorized>
+        <div class="app-layout">
+            <PrimarySidebar />
+            <ChannelSidebar />
+
+            <main class="chat-area">
+                <TopChatBar/>
+                @Body
+            </main>
+        </div>
+    </Authorized>
+    <NotAuthorized>@Body</NotAuthorized>
+</AuthorizeView>
+
+@code {
+    protected override void OnInitialized() => NavState.OnChanged += StateHasChanged;
+    public void Dispose() => NavState.OnChanged -= StateHasChanged;
+}

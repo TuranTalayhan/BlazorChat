@@ -1,0 +1,49 @@
+.channel-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    margin: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #949ba4; /* Muted grey */
+    transition: background-color 0.1s, color 0.1s;
+    position: relative;
+}
+
+.channel-item:hover {
+    background-color: rgba(79, 84, 92, 0.16);
+    color: #dbdee1; /* Lighter grey */
+}
+
+.channel-item.active {
+    background-color: rgba(79, 84, 92, 0.24);
+    color: #ffffff;
+}
+
+.channel-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+::deep .channel-icon {
+    color: #80848e;
+}
+
+.channel-item.active ::deep .channel-icon,
+.channel-item:hover ::deep .channel-icon {
+    color: #dbdee1;
+}
+
+/* Optional Unread Badge */
+.unread-badge {
+    background-color: #f23f43;
+    color: white;
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-left: auto;
+}

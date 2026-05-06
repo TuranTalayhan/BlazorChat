@@ -1,0 +1,39 @@
+@using BlazorChat.Client.Features.User
+@inject UserProfileViewModel ViewModel
+@implements IDisposable
+@inject IDialogService DialogService
+
+<div class="user-footer">
+    <div class="user-info" @onclick="ViewModel.ToggleStatusPopover" style="cursor: pointer;">
+        <div class="avatar">
+            <span>@(ViewModel.Username.ToUpper()[0])</span>
+            <div class="status @ViewModel.StatusClass"></div>
+        </div>
+        <div class="user-details">
+            <span class="username">@ViewModel.Username</span>
+            <span class="status-text">@ViewModel.StatusLabel</span>
+        </div>
+    </div>
+
+    <MudPopover Open="@ViewModel.IsStatusPopoverOpen"
+                AnchorOrigin="Origin.TopCenter"
+                TransformOrigin="Origin.BottomCenter"
+                Class="status-picker-popover pa-3"
+                Style="margin-left: -70px; margin-top: -5px">
+        <div class="status-circles-row">
+            @foreach (UserStatus status in Enum.GetValues(typeof(UserStatus)))
+            {
+                <MudTooltip Text="@status.ToString()" Placement="Placement.Top">
+                    <div class="status-btn @ViewModel.GetClassForStatus(status)" 
+                         @onclick="@(() => ViewModel.UpdateStatusAsync(status))"></div>
+                </MudTooltip>
+            }
+        </div>
+    </MudPopover>
+
+    <div class="user-actions">
+        <MudIconButton Icon="@Icons.Material.Filled.Mic" Class="icon-mic" />
+        <MudIconButton Icon="@Icons.Material.Filled.Headset" Class="icon-headset" />
+        <MudIconButton OnClick="ViewModel.OpenSettings" Icon="@Icons.Material.Filled.Settings" Class="icon-settings" />
+    </div>
+</div>

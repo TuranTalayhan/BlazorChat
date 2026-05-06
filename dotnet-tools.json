@@ -8,6 +8,13 @@
         "dotnet-ef"
       ],
       "rollForward": false
+    },
+    "powershell": {
+      "version": "7.5.4",
+      "commands": [
+        "pwsh"
+      ],
+      "rollForward": false
     }
   }
 }

@@ -1,0 +1,30 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Create Category</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_categoryName" 
+                      Label="Category Name" 
+                      Variant="Variant.Outlined" 
+                      Placeholder="TEXT CHANNELS"
+                      Immediate="true"
+                      AutoFocus="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit" 
+                   Disabled="@(string.IsNullOrWhiteSpace(_categoryName))">Create Category</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _categoryName = string.Empty;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_categoryName));
+
+    private void Cancel() => MudDialog.Cancel();
+}

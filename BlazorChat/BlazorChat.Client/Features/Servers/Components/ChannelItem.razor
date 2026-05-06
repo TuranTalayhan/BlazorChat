@@ -1,0 +1,27 @@
+<div class="channel-item @(IsActive ? "active" : "")" @onclick="OnClick">
+    <MudIcon Icon="@Icons.Material.Filled.Tag" 
+             Size="Size.Small" 
+             Class="mr-2 channel-icon" />
+    
+    <span class="channel-name">@Channel.Name</span>
+
+    @if (UnreadCount > 0)
+    {
+        <div class="unread-badge">@UnreadCount</div>
+    }
+</div>
+
+@code
+{   
+    [Parameter, EditorRequired] 
+    public ChannelDto Channel { get; set; } = null!;
+
+    [Parameter] 
+    public bool IsActive { get; set; }
+
+    [Parameter] 
+    public int UnreadCount { get; set; }
+
+    [Parameter] 
+    public EventCallback OnClick { get; set; }
+}

@@ -1,3 +1,4 @@
+using BlazorChat.Server.Context;
 using BlazorChat.Server.Data;
 using BlazorChat.Server.Data.Entities;
 using BlazorChat.Server.Hubs;
@@ -14,22 +15,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         
-        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
-            {
-                options.Cookie.Name = "auth_token";
-                options.LoginPath = "/"; // Where to send users if they aren't logged in
-                options.Cookie.MaxAge = TimeSpan.FromDays(7);
-            });
-        
-        builder.Services.AddAuthorization();
-        
-        // Add services to the container.
-        builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-        builder.Services.AddControllers();
-        builder.Services.AddSignalR();
-
         // CORS: allow client origins configured via configuration key "ClientOrigins"
         // Support either a semicolon-separated string or an array in configuration.
         string[] clientOrigins;
@@ -55,10 +40,46 @@ public class Program
         {
             options.AddPolicy("AllowClient", policy =>
                 policy.WithOrigins(clientOrigins)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials());
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());
         });
+        
+        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.Cookie.Name = "auth_token";
+                options.LoginPath = "/"; // Where to send users if they aren't logged in
+                options.Cookie.MaxAge = TimeSpan.FromDays(7);
+                
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api") || 
+                        context.Request.Path.StartsWithSegments("/hubs"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return Task.CompletedTask;
+                    }
+            
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                };
+            });
+        
+        builder.Services.AddAuthorization();
+        
+        // Add services to the container.
+        builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddControllers();
+        builder.Services.AddSignalR();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<IUserContext, UserContext>();
+        builder.Services.AddMediator(options => 
+        {
+            options.ServiceLifetime = ServiceLifetime.Scoped;
+        });
+        
 
         var app = builder.Build();
 
@@ -69,8 +90,8 @@ public class Program
             {
                 using var scope = app.Services.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                context.Database.EnsureDeleted();
-                context.Database.EnsureCreated();
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
 
                 var hasher = new PasswordHasher<User>();
 
@@ -91,30 +112,45 @@ public class Program
                     RequesterId = alice.Id, ReceiverId = bob.Id,
                     Status = FriendshipStatus.Accepted, CreatedAt = DateTime.UtcNow
                 });
-                await context.SaveChangesAsync();
 
-                // Seed a dev server with two channels
+                // ── Seed Dev Server ───────────────────────────────────────────────────
                 var devServer = new ChatServer { Name = "Dev Server", OwnerId = alice.Id };
                 context.Servers.Add(devServer);
                 await context.SaveChangesAsync();
 
-                var generalChannel = new Channel { Name = "general", ServerId = devServer.Id, SortOrder = 0 };
-                var randomChannel  = new Channel { Name = "random",  ServerId = devServer.Id, SortOrder = 1 };
-                context.Channels.AddRange(generalChannel, randomChannel);
+                // ── Seed Categories ───────────────────────────────────────────────────
+                var textCategory = new ChannelCategory { Name = "TEXT CHANNELS", ServerId = devServer.Id, SortOrder = 0 };
+                var gamingCategory = new ChannelCategory { Name = "GAMING", ServerId = devServer.Id, SortOrder = 1 };
+                context.ChannelCategories.AddRange(textCategory, gamingCategory);
+                await context.SaveChangesAsync();
 
+                // ── Seed Channels ─────────────────────────────────────────────────────
+                var generalChannel = new Channel { Name = "general", ServerId = devServer.Id, CategoryId = textCategory.Id, SortOrder = 0 };
+                var randomChannel = new Channel { Name = "random", ServerId = devServer.Id, CategoryId = textCategory.Id, SortOrder = 1 };
+                
+                var lobbyChannel = new Channel { Name = "lobby", ServerId = devServer.Id, CategoryId = gamingCategory.Id, SortOrder = 0 };
+                var patchNotes = new Channel { Name = "patch-notes", ServerId = devServer.Id, CategoryId = gamingCategory.Id, SortOrder = 1 };
+                
+                // A root-level channel (no category)
+                var rulesChannel = new Channel { Name = "rules", ServerId = devServer.Id, CategoryId = null, SortOrder = 0 };
+
+                context.Channels.AddRange(generalChannel, randomChannel, lobbyChannel, patchNotes, rulesChannel);
+                await context.SaveChangesAsync();
+
+                // ── Memberships & Messages ───────────────────────────────────────────
                 context.ServerMemberships.AddRange(
                     new ServerMembership { ServerId = devServer.Id, UserId = alice.Id, Role = ServerRole.Owner },
-                    new ServerMembership { ServerId = devServer.Id, UserId = bob.Id,   Role = ServerRole.Member }
+                    new ServerMembership { ServerId = devServer.Id, UserId = bob.Id, Role = ServerRole.Member },
+                    new ServerMembership { ServerId = devServer.Id, UserId = carol.Id, Role = ServerRole.Member }
                 );
-                await context.SaveChangesAsync();
 
                 context.Messages.AddRange(
-                    new Message { Content = "Welcome to #general!", AuthorId = alice.Id, ChannelId = generalChannel.Id, CreatedAt = DateTime.UtcNow.AddHours(-1) },
-                    new Message { Content = "Hi Alice — glad to be here!", AuthorId = bob.Id, ChannelId = generalChannel.Id, CreatedAt = DateTime.UtcNow },
-                    new Message { Content = "Anyone in #random?", AuthorId = alice.Id, ChannelId = randomChannel.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-5) }
+                    new Message { Content = "Welcome to #general!", AuthorId = alice.Id, ChannelId = generalChannel.Id },
+                    new Message { Content = "Check the #rules before posting.", AuthorId = alice.Id, ChannelId = generalChannel.Id },
+                    new Message { Content = "Anyone up for a game in #lobby?", AuthorId = bob.Id, ChannelId = lobbyChannel.Id }
                 );
-                await context.SaveChangesAsync();
-                
+
+                // ── Direct Messages (No Category/Server) ──────────────────────────────
                 var dmChannel = new Channel 
                 { 
                     Type = ChannelType.DirectMessage, 
@@ -122,8 +158,11 @@ public class Program
                 };
                 context.Channels.Add(dmChannel);
                 await context.SaveChangesAsync();
+
                 context.Messages.Add(
-                    new Message { Content = "Hey Bob, DM works!", AuthorId = alice.Id, ChannelId = dmChannel.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-2) }                );
+                    new Message { Content = "Hey Bob, DM works!", AuthorId = alice.Id, ChannelId = dmChannel.Id }
+                );
+                
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)

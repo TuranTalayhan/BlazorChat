@@ -1,13 +1,16 @@
-@inject IServerRepository ServerRepo
+@inject IServerApiService ServerRepo
+@inject NavigationState NavState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@using BlazorChat.Client.Features.Servers
+@using BlazorChat.Client.Features.Servers.Dialogs.AddServer
 @implements IDisposable
 
 <nav class="primary-nav">
     <div class="server-icons-list">
         <MudTooltip Text="Friends" Placement="Placement.Right">
-            <div class="server-icon @(SelectedServer == null ? "active" : "")"
-                 @onclick="() => SelectServer(null)">
+            <div class="server-icon @(NavState.SelectedServer == null ? "active" : "")"
+                 @onclick="() => NavState.SelectServer(null)">
                 <MudIcon Icon="@Icons.Material.Filled.People" />
             </div>
         </MudTooltip>
@@ -17,8 +20,8 @@
         @foreach (var server in _servers)
         {
             <MudTooltip Text="@server.Name" Placement="Placement.Right">
-                <div class="server-icon @(SelectedServer?.Id == server.Id ? "active" : "")"
-                     @onclick="() => SelectServer(server)">
+                <div class="server-icon @(NavState.SelectedServer?.Id == server.Id ? "active" : "")"
+                     @onclick="() => NavState.SelectServer(server)">
                     @server.Name[0].ToString().ToUpper()
                 </div>
             </MudTooltip>
@@ -34,13 +37,12 @@
 </nav>
 
 @code {
-    [Parameter] public ServerDto? SelectedServer { get; set; }
-    [Parameter] public EventCallback<ServerDto?> OnServerSelected { get; set; }
-
-    private List<ServerDto> _servers = new();
+    private List<ServerDto> _servers = [];
 
     protected override async Task OnInitializedAsync()
     {
+        NavState.OnChanged += StateHasChanged;
+        
         ServerRepo.OnChanged += OnServersChanged;
         _servers = await ServerRepo.GetAllAsync();
     }
@@ -51,17 +53,16 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose() => ServerRepo.OnChanged -= OnServersChanged;
-
-    private async Task SelectServer(ServerDto? server)
+    public void Dispose()
     {
-        await OnServerSelected.InvokeAsync(server);
+        NavState.OnChanged -= StateHasChanged;
+        ServerRepo.OnChanged -= OnServersChanged;
     }
-
+    
     private async Task OpenCreateServerModal()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddServerModal>("Create Server", options);
+        var dialog = await DialogService.ShowAsync<CreateServerModal>("Create Server", options);
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {

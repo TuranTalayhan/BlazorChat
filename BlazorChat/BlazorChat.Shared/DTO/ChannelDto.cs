@@ -7,5 +7,5 @@ public class ChannelDto
     public int? ServerId { get; set; }
     public int SortOrder { get; set; }
     
-    public CategoryDto Category { get; set; } = new();
+    public CategoryDto? Category { get; set; } 
 }
