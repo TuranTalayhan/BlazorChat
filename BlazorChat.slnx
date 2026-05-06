@@ -4,6 +4,6 @@
     <Project Path="BlazorChat/BlazorChat.Server/BlazorChat.Server.csproj" />
     <Project Path="BlazorChat/BlazorChat.Shared/BlazorChat.Shared.csproj" />
   </Folder>
-  <Project Path="BlazorChat.Tests.Client/BlazorChat.Tests.Client.csproj" />
-  <Project Path="BlazorChat.Tests.Server/BlazorChat.Tests.Server.csproj" />
+  <Project Path="BlazorChat.Client.Tests\BlazorChat.Client.Tests.csproj" />
+  <Project Path="BlazorChat.Server.Tests\BlazorChat.Server.Tests.csproj" />
 </Solution>

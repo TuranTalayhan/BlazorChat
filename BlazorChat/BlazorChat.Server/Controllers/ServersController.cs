@@ -1,76 +1,84 @@
 using System.Security.Claims;
-using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using Mediator;
+using BlazorChat.Server.Application.Features.Servers;
+using BlazorChat.Server.Application.Features.Servers.Commands;
+using BlazorChat.Server.Application.Features.Servers.Queries;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Controllers;
 
 [ApiController]
 [Route("api/servers")]
 [Authorize]
-public class ServersController(AppDbContext db) : ControllerBase
+public class ServersController(IMediator mediator) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetMyServers()
+    private int GetCurrentUserId()
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(idClaim, out var id) ? id : 0;
+    }
 
-        var servers = await db.ServerMemberships
-            .Where(sm => sm.UserId == userId)
-            .Include(sm => sm.Server)
-            .Select(sm => new ServerDto
-            {
-                Id = sm.Server.Id,
-                Name = sm.Server.Name,
-                OwnerId = sm.Server.OwnerId
-            })
-            .ToListAsync();
+    [HttpGet]
+    public async Task<IActionResult> GetMyServers(CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
 
+        var servers = await mediator.Send(new GetMyServersQuery(userId), ct);
         return Ok(servers);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateServer([FromBody] CreateServerDto dto)
+    public async Task<IActionResult> CreateServer([FromBody] CreateServerDto dto, CancellationToken ct = default)
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
 
-        var server = new ChatServer
+        var result = await mediator.Send(new CreateServerCommand(userId, dto), ct);
+        
+        return CreatedAtAction(nameof(GetServer), new { id = result.Id }, result);
+    }
+    
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetServer(int id, CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await mediator.Send(new GetServerByIdQuery(userId, id), ct);
+
+        if (!result.IsSuccess)
         {
-            Name = dto.Name,
-            OwnerId = userId,
-            CreatedAt = DateTime.UtcNow
-        };
+            return result.Error switch
+            {
+                ServerError.Forbidden => Forbid(),
+                ServerError.NotFound => NotFound(),
+                _ => BadRequest()
+            };
+        }
 
-        db.Servers.Add(server);
-        await db.SaveChangesAsync();
-
-        db.Channels.Add(new Channel { Name = "general", ServerId = server.Id });
-        db.ServerMemberships.Add(new ServerMembership { ServerId = server.Id, UserId = userId, Role = ServerRole.Owner });
-        await db.SaveChangesAsync();
-
-        return Ok(new ServerDto { Id = server.Id, Name = server.Name, OwnerId = server.OwnerId });
+        return Ok(result.Data);
     }
 
     [HttpGet("{id:int}/channels")]
-    public async Task<IActionResult> GetChannels(int id)
+    public async Task<IActionResult> GetChannels(int id, CancellationToken ct = default)
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
 
-        var isMember = await db.ServerMemberships.AnyAsync(sm => sm.ServerId == id && sm.UserId == userId);
-        if (!isMember) return Forbid();
+        var result = await mediator.Send(new GetServerChannelsQuery(userId, id), ct);
 
-        var channels = await db.Channels
-            .Where(c => c.ServerId == id)
-            .OrderBy(c => c.SortOrder).ThenBy(c => c.CreatedAt)
-            .Select(c => new ChannelDto { Id = c.Id, Name = c.Name, ServerId = c.ServerId, SortOrder = c.SortOrder })
-            .ToListAsync();
+        if (!result.IsSuccess)
+        {
+            return result.Error switch
+            {
+                ServerError.Forbidden => Forbid(),
+                _ => BadRequest()
+            };
+        }
 
-        return Ok(channels);
+        return Ok(result.Data);
     }
 }
