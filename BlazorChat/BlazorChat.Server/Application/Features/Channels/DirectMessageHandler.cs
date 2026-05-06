@@ -1,22 +1,19 @@
-using System.Security.Claims;
+using BlazorChat.Server.Application.Features.Channels.Commands;
 using BlazorChat.Server.Context;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
+using BlazorChat.Server.Infrastructure.Persistence;
+using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlazorChat.Server.Features.Channels;
-
-public record GetOrCreateDmCommand(int FriendId) : IRequest<int>;
+namespace BlazorChat.Server.Application.Features.Channels;
 
 public class GetOrCreateDmHandler(AppDbContext db, IUserContext userContext) 
-    : IRequestHandler<GetOrCreateDmCommand, int>
+    : ICommandHandler<GetOrCreateDmCommand, int>
 {
     public async ValueTask<int> Handle(GetOrCreateDmCommand request, CancellationToken ct)
     {
         var currentUserId = userContext.UserId;
-
-        // 1. Try to find existing DM
+        
         var existingId = await db.Channels
             .Where(c => c.Type == ChannelType.DirectMessage)
             .Where(c => c.Members.Any(m => m.Id == currentUserId) && 
@@ -25,8 +22,7 @@ public class GetOrCreateDmHandler(AppDbContext db, IUserContext userContext)
             .FirstOrDefaultAsync(ct);
 
         if (existingId > 0) return existingId;
-
-        // 2. Create new DM
+        
         var currentUser = await db.Users.FirstAsync(u => u.Id == currentUserId, ct);
         var friendUser = await db.Users.FirstOrDefaultAsync(u => u.Id == request.FriendId, ct)
                          ?? throw new Exception("Friend not found");

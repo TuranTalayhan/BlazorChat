@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BlazorChat.Server.Data.Entities;
+namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
 
 public class ChannelCategory
 {

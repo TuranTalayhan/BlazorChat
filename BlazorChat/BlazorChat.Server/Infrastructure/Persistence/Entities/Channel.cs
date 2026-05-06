@@ -1,12 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BlazorChat.Server.Data.Entities;
+namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
 
 public enum ChannelType
 {
     ServerText = 0,
     DirectMessage = 1,
-    //GroupDM = 2
 }
 
 public class Channel

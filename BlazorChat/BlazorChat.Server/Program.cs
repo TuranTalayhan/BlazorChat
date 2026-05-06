@@ -1,7 +1,9 @@
+using BlazorChat.Server.Application.Interfaces;
 using BlazorChat.Server.Context;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
 using BlazorChat.Server.Hubs;
+using BlazorChat.Server.Infrastructure.Persistence;
+using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Server.Infrastructure.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -75,6 +77,8 @@ public class Program
         builder.Services.AddSignalR();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUserContext, UserContext>();
+        builder.Services.AddScoped<IChatNotificationService, ChatNotificationService>();
+        builder.Services.AddScoped<IChannelAuthorizationService, ChannelAuthorizationService>();
         builder.Services.AddMediator(options => 
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;

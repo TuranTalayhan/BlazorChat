@@ -60,9 +60,9 @@
 }
 
 /* Notification Badges */
-.tab-badge {
-    background-color: #f44336;
-    color: white;
+::deep .mud-badge {
+    background-color: #f44336 !important;
+    color: white !important;
     font-size: 0.7rem;
     padding: 1px 6px;
     border-radius: 10px;
@@ -80,11 +80,9 @@
 }
 
 ::deep .mud-badge-wrapper {
-    /* Adjust these values until it sits exactly where you want */
-    top: 10px !important;
-    left: -10px !important;
-
-    /* Optional: Make the badge a bit smaller for a cleaner look */
+    top: 20px !important;
+    left: -20px !important;
+    
     min-width: 16px;
     height: 16px;
     font-size: 0.65rem;

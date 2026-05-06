@@ -1,19 +1,17 @@
 using System.Security.Claims;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
+using Mediator;
+using BlazorChat.Server.Application.Features.Auth.Commands;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AppDbContext db) : ControllerBase
+public class AuthController(IMediator mediator) : ControllerBase
 {
     [HttpGet("status")]
     [AllowAnonymous]
@@ -23,40 +21,27 @@ public class AuthController(AppDbContext db) : ControllerBase
     }
     
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto, CancellationToken ct)
     {
-        var identifier = dto.Email.ToLower().Trim();
-        var user = await db.Users.FirstOrDefaultAsync(u =>
-            u.Email.ToLower() == identifier || u.Username.ToLower() == identifier);
+        var result = await mediator.Send(new LoginCommand(dto), ct);
 
-        if (user == null)
-            return Unauthorized(new { message = "Invalid credentials." });
+        if (!result.IsSuccess)
+            return Unauthorized(new { message = result.ErrorMessage });
 
-        var hasher = new PasswordHasher<User>();
-        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
-        if (result == PasswordVerificationResult.Failed)
-            return Unauthorized(new { message = "Invalid credentials." });
-
-        await SignInUser(user);
-        return Ok(new MeDto { Id = user.Id, Username = user.Username, Email = user.Email, Status = user.Status });
+        await SignInUser(result.User!);
+        return Ok(result.User);
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] CreateUserDto dto)
+    public async Task<IActionResult> Register([FromBody] CreateUserDto dto, CancellationToken ct)
     {
-        if (await db.Users.AnyAsync(u =>
-                u.Email.ToLower() == dto.Email.ToLower() ||
-                u.Username.ToLower() == dto.Username.ToLower()))
-            return Conflict(new { message = "Username or email already taken." });
+        var result = await mediator.Send(new RegisterCommand(dto), ct);
 
-        var user = new User { Username = dto.Username, Email = dto.Email, Status = UserStatus.Online };
-        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, dto.Password);
+        if (!result.IsSuccess)
+            return Conflict(new { message = result.ErrorMessage });
 
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-
-        await SignInUser(user);
-        return Ok(new MeDto { Id = user.Id, Username = user.Username, Email = user.Email, Status = user.Status });
+        await SignInUser(result.User!);
+        return Ok(result.User);
     }
 
     [HttpPost("logout")]
@@ -70,22 +55,19 @@ public class AuthController(AppDbContext db) : ControllerBase
     [Authorize]
     public IActionResult Me()
     {
-        var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var name = User.Identity?.Name;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var statusStr = User.FindFirst("status")?.Value;
-        var status = Enum.TryParse<UserStatus>(statusStr, out var s) ? s : UserStatus.Online;
-
+        
         return Ok(new MeDto
         {
-            Id = int.TryParse(id, out var uid) ? uid : 0,
-            Username = name ?? "",
-            Email = email ?? "",
-            Status = status
+            Id = int.TryParse(idStr, out var uid) ? uid : 0,
+            Username = User.Identity?.Name ?? "",
+            Email = User.FindFirst(ClaimTypes.Email)?.Value ?? "",
+            Status = Enum.TryParse<UserStatus>(statusStr, out var s) ? s : UserStatus.Online
         });
     }
-
-    private async Task SignInUser(User user)
+    
+    private async Task SignInUser(MeDto user)
     {
         var claims = new List<Claim>
         {
@@ -94,6 +76,7 @@ public class AuthController(AppDbContext db) : ControllerBase
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new("status", user.Status.ToString())
         };
+        
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
     }

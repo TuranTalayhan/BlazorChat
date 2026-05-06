@@ -27,7 +27,8 @@
         </MudTooltip>
         
         <div class="inbox-container">
-            <MudBadge Content="@ViewModel.PendingRequests.Count" Visible="@(ViewModel.PendingRequests.Count > 0)">
+            <MudBadge Content="@ViewModel.PendingRequests.Count" 
+                      Visible="@(ViewModel.PendingRequests.Count > 0)" >
                 <MudIconButton Icon="@Icons.Material.Filled.Inbox" 
                                OnClick="@(() => ViewModel.IsInboxOpen = !ViewModel.IsInboxOpen)" />
             </MudBadge>

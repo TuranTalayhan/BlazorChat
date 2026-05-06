@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
+using BlazorChat.Server.Infrastructure.Persistence;
+using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

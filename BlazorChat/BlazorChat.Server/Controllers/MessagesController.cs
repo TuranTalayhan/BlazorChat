@@ -1,113 +1,64 @@
 using System.Security.Claims;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
-using BlazorChat.Server.Hubs;
+using Mediator;
+using BlazorChat.Server.Application.Features.Messages;
+using BlazorChat.Server.Application.Features.Messages.Commands;
+using BlazorChat.Server.Application.Features.Messages.Queries;
 using BlazorChat.Shared.DTO;
-using BlazorChat.Shared.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Controllers;
 
 [ApiController]
 [Route("api/messages")]
 [Authorize]
-public class MessagesController(AppDbContext db, IHubContext<ChatHub, IChatClient> hub) : ControllerBase
+public class MessagesController(IMediator mediator) : ControllerBase
 {
-    private int GetUserId() =>
-        int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
-
-    private async Task<bool> CanAccessChannel(int userId, int channelId)
+    private int GetCurrentUserId()
     {
-        var channel = await db.Channels
-            .Include(c => c.Members)
-            .FirstOrDefaultAsync(c => c.Id == channelId);
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(idClaim, out var id) ? id : 0;
+    }
 
-        if (channel == null) return false;
+    [HttpGet("{channelId:int}")]
+    public async Task<IActionResult> GetMessages(int channelId, [FromQuery] int count = 50, CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
 
-        if (channel.Type == ChannelType.ServerText)
+        var result = await mediator.Send(new GetMessagesQuery(userId, channelId, count), ct);
+
+        if (!result.IsSuccess)
         {
-            return await db.ServerMemberships
-                .AnyAsync(sm => sm.UserId == userId && sm.ServerId == channel.ServerId);
+            return result.Error switch
+            {
+                MessageError.Forbidden => Forbid(),
+                _ => BadRequest(new { message = result.ErrorMessage })
+            };
         }
 
-        return channel.Type == ChannelType.DirectMessage &&
-               // Must be exactly one of the members in this DM
-               channel.Members.Any(m => m.Id == userId);
-    }
-    
-    [HttpGet("{channelId:int}")]
-    public async Task<IActionResult> GetMessages(int channelId, [FromQuery] int count = 50)
-    {
-        var userId = GetUserId();
-        if (userId == 0) return Unauthorized();
-        
-        if (!await CanAccessChannel(userId, channelId)) return Forbid();
-        
-        var messages = await db.Messages
-            .Include(m => m.Author)
-            .Where(m => m.ChannelId == channelId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(count)
-            .Select(m => new MessageDto
-            {
-                Id = m.Id,
-                Content = m.Content,
-                Type = (Shared.DTO.MessageType)m.Type,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt,
-                AuthorId = m.AuthorId,
-                AuthorUsername = m.Author.Username,
-                AuthorAvatarUrl = m.Author.AvatarUrl,
-                ChannelId = m.ChannelId
-            })
-            .ToListAsync();
-
-        messages.Reverse();
-        return Ok(messages);
+        return Ok(result.Data);
     }
 
     [HttpPost]
-    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto)
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto, CancellationToken ct)
     {
-        var userId = GetUserId();
+        var userId = GetCurrentUserId();
         if (userId == 0) return Unauthorized();
 
-        if (dto.ChannelId <= 0) return BadRequest("Invalid channel ID.");
-        
-        if (!await CanAccessChannel(userId, dto.ChannelId)) return Forbid();
+        var result = await mediator.Send(new SendMessageCommand(userId, dto), ct);
 
-        var user = await db.Users.FindAsync(userId);
-        if (user == null) return Unauthorized();
-        
-        var message = new Message
+        if (!result.IsSuccess)
         {
-            Content = dto.Content.Trim(),
-            ChannelId = dto.ChannelId,
-            AuthorId = userId,
-            CreatedAt = DateTime.UtcNow
-        };
+            return result.Error switch
+            {
+                MessageError.Forbidden => Forbid(),
+                MessageError.NotFound => NotFound(new { message = result.ErrorMessage }),
+                MessageError.BadRequest => BadRequest(new { message = result.ErrorMessage }),
+                _ => StatusCode(500)
+            };
+        }
 
-        db.Messages.Add(message);
-        await db.SaveChangesAsync();
-
-        var messageDto = new MessageDto
-        {
-            Id = message.Id,
-            Content = message.Content,
-            CreatedAt = message.CreatedAt,
-            AuthorId = userId,
-            AuthorUsername = user.Username,
-            AuthorAvatarUrl = user.AvatarUrl,
-            ChannelId = message.ChannelId
-        };
-        
-        var groupName = $"channel:{dto.ChannelId}";
-        await hub.Clients.Group(groupName).ReceiveMessage(messageDto);
-        
-        return Ok(messageDto);
+        return Ok(result.Data);
     }
 }
-

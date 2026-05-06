@@ -1,7 +1,7 @@
-using BlazorChat.Server.Data.Entities;
+using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlazorChat.Server.Data;
+namespace BlazorChat.Server.Infrastructure.Persistence;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {

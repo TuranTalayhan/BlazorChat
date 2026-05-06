@@ -1,4 +1,5 @@
-using BlazorChat.Server.Features.Channels;
+using BlazorChat.Server.Application.Features.Channels;
+using BlazorChat.Server.Application.Features.Channels.Commands;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

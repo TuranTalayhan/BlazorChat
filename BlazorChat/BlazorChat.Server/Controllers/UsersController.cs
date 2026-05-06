@@ -1,83 +1,57 @@
-using System.Collections.Immutable;
 using System.Security.Claims;
-using BlazorChat.Server.Data;
-using BlazorChat.Server.Data.Entities;
-using BlazorChat.Server.Hubs;
+using Mediator;
+using BlazorChat.Server.Application.Features.Users.Commands;
+using BlazorChat.Server.Application.Features.Users.Queries;
 using BlazorChat.Shared.DTO;
-using BlazorChat.Shared.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Controllers;
 
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class UsersController(AppDbContext db, IHubContext<ChatHub, IChatClient> hub) : ControllerBase
+public class UsersController(IMediator mediator) : ControllerBase
 {
-    [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string q = "")
+    private int GetCurrentUserId()
     {
-        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
-            return Ok(new List<string>());
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(idClaim, out var id) ? id : 0;
+    }
 
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var currentId))
-            return Unauthorized();
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string q = "", CancellationToken ct = default)
+    {
+        var currentId = GetCurrentUserId();
+        if (currentId == 0) return Unauthorized();
 
-        var users = await db.Users
-            .Where(u => u.Id != currentId && u.Username.ToLower().Contains(q.ToLower()))
-            .Take(5)
-            .Select(u => u.Username)
-            .ToListAsync();
-
+        var users = await mediator.Send(new SearchUsersQuery(currentId, q), ct);
         return Ok(users);
     }
     
     [HttpGet("me/status")]
-    public async Task<IActionResult> GetStatus()
+    public async Task<IActionResult> GetStatus(CancellationToken ct = default)
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var currentId))
-            return Unauthorized();
+        var currentId = GetCurrentUserId();
+        if (currentId == 0) return Unauthorized();
+
+        var status = await mediator.Send(new GetUserStatusQuery(currentId), ct);
         
-        var user = await db.Users.FindAsync(currentId);
-        if (user == null) return NotFound();
-        
-        var status = new ReceiveUserStatus
-        {
-            Id = currentId,
-            Status =  user.Status,
-        };
+        if (status == null) return NotFound();
         
         return Ok(status);
     }
 
     [HttpPatch("me/status")]
-    public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusDto dto)
+    public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusDto dto, CancellationToken ct = default)
     {
-        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var currentId))
-            return Unauthorized();
-        
-        var user = await db.Users.FindAsync(currentId);
-        if (user == null) return NotFound();
-        
-        var friendIds = await db.Friendships
-            .Where(f => (f.RequesterId == currentId || f.ReceiverId == currentId)
-                        && f.Status == FriendshipStatus.Accepted)
-            .Select(f => f.RequesterId == currentId ? f.ReceiverId.ToString() : f.RequesterId.ToString())
-            .ToListAsync();
-        
-        user.Status = dto.Status;
-        var status = new ReceiveUserStatus
-        {
-            Id = currentId,
-            Status =  dto.Status,
-        };
-        
-        await hub.Clients.Users(friendIds).UserStatusChanged(status);
-        
-        await db.SaveChangesAsync();
+        var currentId = GetCurrentUserId();
+        if (currentId == 0) return Unauthorized();
+
+        var success = await mediator.Send(new UpdateUserStatusCommand(currentId, dto), ct);
+
+        if (!success) return NotFound();
+
         return Ok();
     }
 }
