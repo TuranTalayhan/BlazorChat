@@ -1,13 +1,15 @@
 using BlazorChat.Client.Features.Chat.Services;
-using BlazorChat.Client.Services;
+using BlazorChat.Client.Features.DirectMessage;
+using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
 
-namespace BlazorChat.Client.Features.Friends;
+namespace BlazorChat.Client.Features.Friends.ViewModels;
 
 public class FriendsSidebarViewModel : IDisposable
 {
-    private readonly IFriendshipApiService _apiService;
+    private readonly IFriendshipApiService _friendshipApiService;
+    private readonly IDirectMessageApiService _dmApiService;
     private readonly IChatHubService _hubService;
     private readonly NavigationManager _navigationManager;
     
@@ -23,12 +25,13 @@ public class FriendsSidebarViewModel : IDisposable
         (string.IsNullOrWhiteSpace(StatusFilter) || f.Status != UserStatus.Offline)
     );
 
-    public FriendsSidebarViewModel(IFriendshipApiService apiService, IChatHubService hubService,  NavigationManager navigationManager)
+    public FriendsSidebarViewModel(IFriendshipApiService friendshipApiService, IChatHubService hubService,  NavigationManager navigationManager, IDirectMessageApiService dmApiService)
     {
-        _apiService = apiService;
+        _friendshipApiService = friendshipApiService;
         _hubService = hubService;
         _navigationManager = navigationManager;
-        
+        _dmApiService = dmApiService;
+
 
         _hubService.OnUserStatusChanged += HandleUserStatusChanged;
         _hubService.OnNewFriendAdded += HandleNewFriend;
@@ -36,7 +39,7 @@ public class FriendsSidebarViewModel : IDisposable
 
     public async Task InitializeAsync()
     {
-        var friendsList = await _apiService.GetFriendsAsync();
+        var friendsList = await _friendshipApiService.GetFriendsAsync();
         foreach (var friend in friendsList)
         {
             Friends[friend.FriendId] = friend;
@@ -58,7 +61,7 @@ public class FriendsSidebarViewModel : IDisposable
     
         OnStateChanged?.Invoke();
 
-        var channelId =  await _apiService.GetOrCreateDmAsync(friendId);
+        var channelId =  await _dmApiService.OpenDirectMessageAsync(friendId);
         
         _navigationManager.NavigateTo($"/chat/{channelId}");
     }

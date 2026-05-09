@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using BlazorChat.Shared.DTO;
 
-namespace BlazorChat.Client.Services;
+namespace BlazorChat.Client.Features.Friends.Services;
 
 public interface IFriendshipApiService
 {
@@ -9,8 +9,6 @@ public interface IFriendshipApiService
     Task<bool> RespondToRequestAsync(int requesterId, bool accept, CancellationToken ct = default);
     
     Task<List<FriendshipDto>> GetFriendsAsync(CancellationToken ct = default);
-    
-    Task<int> GetOrCreateDmAsync(int friendIdm, CancellationToken ct = default);
 }
 
 public class FriendshipApiService(HttpClient http) : IFriendshipApiService
@@ -29,11 +27,5 @@ public class FriendshipApiService(HttpClient http) : IFriendshipApiService
         var res = await http.GetAsync($"api/friendships", ct);
         if (!res.IsSuccessStatusCode) return [];
         return await res.Content.ReadFromJsonAsync<List<FriendshipDto>>(ct) ?? [];  
-    }
-    
-    public async Task<int> GetOrCreateDmAsync(int friendId,  CancellationToken ct)
-    {
-        var response = await http.PostAsync($"api/channels/dm/{friendId}", null, ct);
-        return await response.Content.ReadFromJsonAsync<int>(cancellationToken: ct);
     }
 }

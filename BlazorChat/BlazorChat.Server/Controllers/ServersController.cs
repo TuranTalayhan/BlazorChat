@@ -1,4 +1,7 @@
 using System.Security.Claims;
+using BlazorChat.Server.Application.Features.ChannelCategories.Commands;
+using BlazorChat.Server.Application.Features.Channels;
+using BlazorChat.Server.Application.Features.Channels.Commands;
 using Mediator;
 using BlazorChat.Server.Application.Features.Servers;
 using BlazorChat.Server.Application.Features.Servers.Commands;
@@ -76,6 +79,71 @@ public class ServersController(IMediator mediator) : ControllerBase
             {
                 ServerError.Forbidden => Forbid(),
                 _ => BadRequest()
+            };
+        }
+
+        return Ok(result.Data);
+    }
+    
+    [HttpPost("{serverId:int}/channels")]
+    public async Task<IActionResult> CreateChannel(int serverId, [FromBody] CreateServerChannelDto dto, CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await mediator.Send(new CreateServerChannelCommand(userId, serverId, dto.Name, dto.CategoryName, dto.CategoryId), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.Error switch
+            {
+                ChannelError.Forbidden => Forbid(),
+                ChannelError.NotFound => NotFound(),
+                ChannelError.BadRequest => BadRequest(new { message = result.ErrorMessage }),
+                _ => StatusCode(500)
+            };
+        }
+
+        return Ok(result.Data);
+    }
+
+    [HttpGet("{serverId:int}/categories")]
+    public async Task<IActionResult> GetCategories(int serverId, CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await mediator.Send(new GetServerCategoriesQuery(userId, serverId), ct);
+        
+        if (!result.IsSuccess)
+        {
+            return result.Error switch
+            {
+                ServerError.Forbidden => Forbid(),
+                ServerError.NotFound => NotFound(),
+                _ => BadRequest()
+            };
+        }
+        
+        return Ok(result.Data);
+    }
+    
+    [HttpPost("{serverId:int}/categories")]
+    public async Task<IActionResult> CreateCategory(int serverId, [FromBody] CreateCategoryDto dto, CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await mediator.Send(new CreateCategoryCommand(userId, serverId, dto.Name), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.Error switch
+            {
+                ServerError.Forbidden => Forbid(),
+                ServerError.NotFound => NotFound(),
+                ServerError.BadRequest => BadRequest(new { message = result.ErrorMessage }),
+                _ => StatusCode(500)
             };
         }
 

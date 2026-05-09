@@ -1,5 +1,5 @@
 @inject SidebarViewModel ViewModel
-@using BlazorChat.Client.ViewModels
+@using BlazorChat.Client.Features.Servers.ViewModels
 @implements IDisposable
 
 <div class="channel-sidebar-header d-flex align-center justify-space-between px-4 py-2">
@@ -11,13 +11,19 @@
 </div>
 
 <div class="channel-list">
-    @if (ViewModel.IsLoading) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
-    else {
-        @foreach (var ch in ViewModel.RootChannels) {
+    @if (ViewModel.IsLoading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+    }
+    else 
+    {
+        @foreach (var ch in ViewModel.RootChannels) 
+        {
             <ChannelItem Channel="ch" IsActive="ViewModel.ActiveChannelId == ch.Id" OnClick="() => ViewModel.NavTo(ch.Id)" />
         }
 
-        @foreach (var group in ViewModel.CategorizedGroups) {
+        @foreach (var group in ViewModel.CategorizedGroups) 
+        {
             <div class="category-header d-flex align-center mt-2 px-2">
                 <div @onclick="() => ViewModel.ToggleCategory(group.Key)" class="flex-grow-1 cursor-pointer">
                     <MudIcon Icon="@(ViewModel.CollapsedCategories.Contains(group.Key) ? Icons.Material.Filled.KeyboardArrowRight : Icons.Material.Filled.KeyboardArrowDown)" />

@@ -24,8 +24,15 @@ public class GetServerChannelsQueryHandler(AppDbContext db) : IQueryHandler<GetS
             { 
                 Id = c.Id, 
                 Name = c.Name, 
+                Type = c.Type,
                 ServerId = c.ServerId, 
-                SortOrder = c.SortOrder 
+                SortOrder = c.SortOrder,
+                Category = c.Category != null ? new CategoryDto
+                {
+                    Id = c.Category.Id,
+                    Name = c.Category.Name,
+                    SortOrder = c.Category.SortOrder
+                } : null
             })
             .ToListAsync(ct);
 

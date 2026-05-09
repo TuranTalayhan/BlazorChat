@@ -1,12 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
-
-public enum ChannelType
-{
-    ServerText = 0,
-    DirectMessage = 1,
-}
 
 public class Channel
 {
@@ -17,12 +12,13 @@ public class Channel
 
     public int SortOrder { get; set; } = 0;
     
-    public ChannelType Type { get; set; } = ChannelType.ServerText;
+    public ChannelType Type { get; set; } = ChannelType.Server;
 
     public int? ServerId { get; set; }
     public ChatServer? Server { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     public int? CategoryId { get; set; }
     public ChannelCategory? Category { get; set; }

@@ -2,10 +2,11 @@ using BlazorChat.Server.Application.Features.Channels.Commands;
 using BlazorChat.Server.Context;
 using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Shared.DTO;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlazorChat.Server.Application.Features.Channels;
+namespace BlazorChat.Server.Application.Features.Channels.Handlers;
 
 public class GetOrCreateDmHandler(AppDbContext db, IUserContext userContext) 
     : ICommandHandler<GetOrCreateDmCommand, int>

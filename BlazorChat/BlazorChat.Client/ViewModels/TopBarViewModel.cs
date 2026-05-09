@@ -1,4 +1,5 @@
 using BlazorChat.Client.Core;
+using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Client.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;

@@ -1,29 +1,83 @@
+@implements IDisposable
+@inject CreateChannelViewModel ViewModel
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">Create Text Channel</MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="4">
-            <MudTextField @bind-Value="_channelName" 
+            
+            @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@ViewModel.ErrorMessage</MudAlert>
+            }
+
+            <MudTextField @bind-Value="ViewModel.ChannelName" 
                           Label="Channel Name" 
                           Variant="Variant.Outlined" 
                           Placeholder="new-channel"
                           Adornment="Adornment.Start" 
                           AdornmentIcon="@Icons.Material.Filled.Tag" 
                           Immediate="true"
-                          AutoFocus="true" />
+                          AutoFocus="true" 
+                          Disabled="ViewModel.IsLoading" />
             
-            <MudTextField @bind-Value="_category" 
-                          Label="Category (Optional)" 
-                          Variant="Variant.Outlined" 
-                          HelperText="Leave empty for uncategorized" />
+            @if (!ViewModel.HasPreSelectedCategory)
+            {
+                <MudTextField @bind-Value="ViewModel.Category" 
+                              Label="Category (Optional)" 
+                              Variant="Variant.Outlined" 
+                              HelperText="Leave empty for uncategorized"
+                              Disabled="ViewModel.IsLoading" />
+            }
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton OnClick="Cancel" Disabled="ViewModel.IsLoading">Cancel</MudButton>
         <MudButton Color="Color.Primary" 
                    Variant="Variant.Filled" 
-                   OnClick="Submit" 
-                   Disabled="@(string.IsNullOrWhiteSpace(_channelName))">Create Channel</MudButton>
+                   OnClick="SubmitAsync" 
+                   Disabled="@(!ViewModel.IsValid || ViewModel.IsLoading)">
+            @if (ViewModel.IsLoading)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Creating...</MudText>
+            }
+            else
+            {
+                <MudText>Create Channel</MudText>
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public int ServerId { get; set; }
+    [Parameter] public int? PreSelectedCategoryId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ViewModel.StateChanged += StateHasChanged;
+        ViewModel.Initialize(PreSelectedCategoryId);
+    }
+
+    private async Task SubmitAsync()
+    {
+        var result = await ViewModel.SubmitAsync(ServerId);
+        
+        if (result != null)
+        {
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= StateHasChanged;
+    }
+}

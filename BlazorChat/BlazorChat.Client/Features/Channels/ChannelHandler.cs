@@ -9,5 +9,5 @@ public record GetChannelsQuery(int ServerId) : IQuery<List<ChannelDto>>;
 public class ChannelHandlers(IChannelApiService api) : IQueryHandler<GetChannelsQuery, List<ChannelDto>>
 {
     public async ValueTask<List<ChannelDto>> Handle(GetChannelsQuery request, CancellationToken ct) =>
-        await api.GetByServerAsync(request.ServerId, ct);
+        await api.GetChannelsGetByServerAsync(request.ServerId, ct);
 }

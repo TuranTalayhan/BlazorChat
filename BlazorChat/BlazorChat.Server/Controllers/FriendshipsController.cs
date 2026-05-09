@@ -64,7 +64,7 @@ public class FriendshipsController(IMediator mediator) : ControllerBase
 
         var result = await mediator.Send(new RespondToFriendRequestCommand(currentId, requesterId, accept), ct);
 
-        if (!result.IsSuccess && result.Error == FriendshipError.NotFound)
+        if (result is { IsSuccess: false, Error: FriendshipError.NotFound })
             return NotFound();
 
         return Ok();

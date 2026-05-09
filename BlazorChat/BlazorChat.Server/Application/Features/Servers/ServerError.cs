@@ -4,5 +4,6 @@ public enum ServerError
 {
     None, 
     Forbidden, 
-    NotFound
+    NotFound,
+    BadRequest,
 }

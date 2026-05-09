@@ -24,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Application\Common\" />
-    <Folder Include="Application\Features\Channels\Handlers\" />
     <Folder Include="Domain\Entities\" />
     <Folder Include="Domain\Exceptions\" />
     <Folder Include="Domain\Interfaces\" />

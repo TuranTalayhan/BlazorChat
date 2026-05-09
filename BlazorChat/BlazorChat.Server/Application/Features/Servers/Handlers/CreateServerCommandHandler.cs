@@ -10,7 +10,6 @@ public class CreateServerCommandHandler(AppDbContext db) : ICommandHandler<Creat
 {
     public async ValueTask<ServerDto> Handle(CreateServerCommand request, CancellationToken ct)
     {
-        // 1. Create the server
         var server = new ChatServer
         {
             Name = request.Dto.Name,
@@ -20,8 +19,7 @@ public class CreateServerCommandHandler(AppDbContext db) : ICommandHandler<Creat
 
         db.Servers.Add(server);
         await db.SaveChangesAsync(ct);
-
-        // 2. Scaffold default channel and assign ownership
+        
         db.Channels.Add(new Channel { Name = "general", ServerId = server.Id });
         db.ServerMemberships.Add(new ServerMembership 
         { 

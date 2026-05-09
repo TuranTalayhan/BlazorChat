@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using MudBlazor;
 
-namespace BlazorChat.Client.ViewModels;
+namespace BlazorChat.Client.Features.Servers.ViewModels;
 
 public class SidebarViewModel(IMediator mediator, NavigationManager nav, IDialogService dialog)
 {
@@ -50,7 +50,7 @@ public class SidebarViewModel(IMediator mediator, NavigationManager nav, IDialog
 
     public async Task OpenCreateChannelDialog(int serverId, string? category = null)
     {
-        var parameters = new DialogParameters<CreateChannelDialog> { { x => x.ServerId, serverId }, { x => x.DefaultCategory, category } };
+        var parameters = new DialogParameters<CreateChannelDialog> { { x => x.ServerId, serverId } };
         var result = await dialog.ShowAsync<CreateChannelDialog>("New Channel", parameters);
         if (!(await result.Result).Canceled) await LoadChannelsAsync(serverId);
     }

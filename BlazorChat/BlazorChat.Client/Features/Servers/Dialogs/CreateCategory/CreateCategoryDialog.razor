@@ -1,30 +1,68 @@
+@implements IDisposable
+@inject CreateCategoryViewModel ViewModel
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">Create Category</MudText>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="_categoryName" 
-                      Label="Category Name" 
-                      Variant="Variant.Outlined" 
-                      Placeholder="TEXT CHANNELS"
-                      Immediate="true"
-                      AutoFocus="true" />
+        <MudStack Spacing="4">
+            @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@ViewModel.ErrorMessage</MudAlert>
+            }
+
+            <MudTextField @bind-Value="ViewModel.CategoryName" 
+                          Label="Category Name" 
+                          Variant="Variant.Outlined" 
+                          Placeholder="TEXT CHANNELS"
+                          Immediate="true"
+                          AutoFocus="true"
+                          Disabled="ViewModel.IsLoading" />
+        </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton OnClick="Cancel" Disabled="ViewModel.IsLoading">Cancel</MudButton>
         <MudButton Color="Color.Primary" 
                    Variant="Variant.Filled" 
-                   OnClick="Submit" 
-                   Disabled="@(string.IsNullOrWhiteSpace(_categoryName))">Create Category</MudButton>
+                   OnClick="SubmitAsync" 
+                   Disabled="@(!ViewModel.IsValid || ViewModel.IsLoading)">
+            @if (ViewModel.IsLoading)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Creating...</MudText>
+            }
+            else
+            {
+                <MudText>Create Category</MudText>
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int ServerId { get; set; }
 
-    private string _categoryName = string.Empty;
+    protected override void OnInitialized()
+    {
+        ViewModel.StateChanged += StateHasChanged;
+    }
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(_categoryName));
+    private async Task SubmitAsync()
+    {
+        var result = await ViewModel.SubmitAsync(ServerId);
+        
+        if (result != null)
+        {
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+    }
 
     private void Cancel() => MudDialog.Cancel();
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= StateHasChanged;
+    }
 }

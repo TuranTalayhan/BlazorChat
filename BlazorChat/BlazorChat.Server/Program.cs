@@ -79,6 +79,7 @@ public class Program
         builder.Services.AddScoped<IUserContext, UserContext>();
         builder.Services.AddScoped<IChatNotificationService, ChatNotificationService>();
         builder.Services.AddScoped<IChannelAuthorizationService, ChannelAuthorizationService>();
+        builder.Services.AddScoped<ICategoryManager, CategoryManager>();
         builder.Services.AddMediator(options => 
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;

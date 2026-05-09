@@ -1,6 +1,6 @@
 @inject ServerChannelsViewModel ViewModel
-@using BlazorChat.Client.Features.Servers
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory
+@using BlazorChat.Client.Features.Servers.ViewModels
 @using CreateChannelDialog = BlazorChat.Client.Features.Servers.Dialogs.CreateChannel.CreateChannelDialog
 @inject IDialogService DialogService
 @implements IDisposable
@@ -37,16 +37,16 @@
         @foreach (var group in ViewModel.CategorizedGroups)
         {
             <div class="category-header d-flex align-center mt-2 px-2">
-                <div class="flex-grow-1 d-flex align-center cursor-pointer" @onclick="() => ViewModel.ToggleCategory(group.Key)">
-                    <MudIcon Icon="@(ViewModel.IsExpanded(group.Key) ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowRight)" 
+                <div class="flex-grow-1 d-flex align-center cursor-pointer" @onclick="() => ViewModel.ToggleCategory(group.Key.Id)">
+                    <MudIcon Icon="@(ViewModel.IsExpanded(group.Key.Id) ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowRight)" 
                              Size="Size.Small" Class="mr-1" />
-                    <MudText Typo="Typo.overline" Style="letter-spacing: 1px;">@group.Key.ToUpper()</MudText>
+                    <MudText Typo="Typo.overline" Style="letter-spacing: 1px;">@group.Key.Name.ToUpper()</MudText>
                 </div>
                 <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
-                               OnClick="@(() => OpenCreateChannelDialog(group.Key))" Class="pa-1" />
+                               OnClick="@(() => OpenCreateChannelDialog(group.Key.Id))" Class="pa-1" />
             </div>
 
-            @if (ViewModel.IsExpanded(group.Key))
+            @if (ViewModel.IsExpanded(group.Key.Id))
             {
                 @foreach (var ch in group)
                 {
@@ -62,22 +62,56 @@
 
 @code {
     [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
-
+    
     protected override async Task OnParametersSetAsync() 
         => await ViewModel.InitializeAsync(Server.Id);
-
-    private async Task OpenCreateChannelDialog(string? category = null)
+    
+    protected override void OnInitialized()
     {
-        var parameters = new DialogParameters<CreateChannelDialog> { { x => x.ServerId, Server.Id }, { x => x.DefaultCategory, category } };
+        ViewModel.StateChanged += OnViewModelStateChanged;
+    }
+
+    private async Task OpenCreateChannelDialog(int? categoryId = null)
+    {
+        var parameters = new DialogParameters<CreateChannelDialog> 
+        { 
+            { x => x.ServerId, Server.Id },
+            { x => x.PreSelectedCategoryId, categoryId }
+        };
+        
         var dialog = await DialogService.ShowAsync<CreateChannelDialog>("New Channel", parameters);
-        if (!(await dialog.Result).Canceled) await ViewModel.LoadChannels(Server.Id);
+    
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: ChannelDto newChannel })
+        {
+            ViewModel.AddChannel(newChannel);
+        }
     }
 
     private async Task OpenCreateCategoryDialog()
     {
-        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("New Category");
-        if (!(await dialog.Result).Canceled) await ViewModel.LoadChannels(Server.Id);
+        var parameters = new DialogParameters<CreateCategoryDialog> 
+        { 
+            { x => x.ServerId, Server.Id } 
+        };
+    
+        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("New Category", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: CategoryDto newCategory })
+        {
+            ViewModel.AddCategory(newCategory);
+        }
+    }
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose() => ViewModel.Dispose();
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+        ViewModel.Dispose();
+    }
 }
