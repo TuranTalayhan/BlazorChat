@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Full Blazor App" type="CompoundRunConfigurationType">
+    <toRun name="BlazorChat.Client: http" type="LaunchSettings" />
+    <toRun name="BlazorChat.Server: http" type="LaunchSettings" />
+    <toRun name="Postgres Database" type="docker-deploy" />
+    <method v="2" />
+  </configuration>
+</component>
