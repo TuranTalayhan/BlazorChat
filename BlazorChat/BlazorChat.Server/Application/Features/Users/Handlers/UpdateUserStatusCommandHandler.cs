@@ -25,7 +25,7 @@ public class UpdateUserStatusCommandHandler(AppDbContext db, IChatNotificationSe
         user.Status = request.Dto.Status;
         await db.SaveChangesAsync(ct);
 
-        var statusMsg = new ReceiveUserStatus
+        var statusMsg = new ReceiveUserStatusDto
         {
             Id = request.CurrentUserId,
             Status = request.Dto.Status

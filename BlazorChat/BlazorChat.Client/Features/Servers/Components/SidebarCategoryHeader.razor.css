@@ -1,0 +1,22 @@
+.category-header {
+    padding: 0 8px 0 12px;
+    color: #5C6067;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.category-header:hover {
+    color: #060607;
+}
+
+::deep .show-on-hover {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.category-header:hover ::deep .show-on-hover {
+    visibility: visible;
+    opacity: 1;
+}

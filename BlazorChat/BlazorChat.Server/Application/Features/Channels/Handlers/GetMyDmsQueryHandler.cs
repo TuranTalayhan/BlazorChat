@@ -12,15 +12,13 @@ public class GetMyDmsQueryHandler(AppDbContext db) : IQueryHandler<GetMyDmsQuery
     {
         return await db.Channels
             .AsNoTracking()
-            .Include(c => c.Members) // Include members so we can figure out who the DM is with
+            .Include(c => c.Members)
             .Where(c => c.Type == ChannelType.DirectMessage && c.Members.Any(m => m.Id == request.CurrentUserId))
             .OrderByDescending(c => c.UpdatedAt)
             .Select(c => new ChannelDto
             {
                 Id = c.Id,
-                Type =  (ChannelType)c.Type,
-                // For DMs, the client usually determines the name by looking at the OTHER member's username.
-                // We'll map the members so the client has that data.
+                Type =  c.Type,
                 Members = c.Members.Select(m => new UserDto
                 {
                     Id = m.Id,

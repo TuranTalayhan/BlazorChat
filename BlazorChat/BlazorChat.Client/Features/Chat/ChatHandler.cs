@@ -1,4 +1,4 @@
-using BlazorChat.Client.Services.Chat;
+using BlazorChat.Client.Features.Chat.Services;
 using BlazorChat.Shared.DTO;
 using Mediator;
 
@@ -18,6 +18,6 @@ public class ChatHandlers(IChatApiService chatApi) :
 
     public async ValueTask<bool> Handle(SendMessageCommand request, CancellationToken ct)
     {
-        return await chatApi.SendMessageAsync(request.Content, request.ChannelId, ct);
+        return await chatApi.SendMessageAsync(request.Content, request.ChannelId);
     }
 }

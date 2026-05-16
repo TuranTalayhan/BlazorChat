@@ -1,9 +1,8 @@
-@inject ServerChannelsViewModel ViewModel
+@using System.Text.RegularExpressions
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory
+@using BlazorChat.Client.Features.Servers.Dialogs.CreateChannel
 @using BlazorChat.Client.Features.Servers.ViewModels
-@using CreateChannelDialog = BlazorChat.Client.Features.Servers.Dialogs.CreateChannel.CreateChannelDialog
-@inject IDialogService DialogService
-@implements IDisposable
+@using BlazorChat.Shared.Interfaces
 
 <div class="channel-sidebar-header d-flex align-center justify-space-between px-4 py-2">
     <MudText Typo="Typo.subtitle1" Class="fw-bold">@Server.Name</MudText>
@@ -20,7 +19,7 @@
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
         </div>
     }
-    else if (!ViewModel.Channels.Any())
+    else if (!ViewModel.Channels.Any() && !ViewModel.CategorizedGroups.Any())
     {
         <div class="channel-empty pa-4 text-center">No channels yet</div>
     }
@@ -28,50 +27,46 @@
     {
         @foreach (var ch in ViewModel.RootChannels)
         {
-            <div class="channel-item @ViewModel.GetChannelClass(ch.Id)" @onclick="() => ViewModel.Navigate(ch.Id)">
-                <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
-                <span class="channel-name">@ch.Name</span>
-            </div>
+            <SidebarChannelItem Channel="ch" ViewModel="ViewModel" OnDelete="ConfirmDelete" />
         }
-        
+
         @foreach (var group in ViewModel.CategorizedGroups)
         {
-            <div class="category-header d-flex align-center mt-2 px-2">
-                <div class="flex-grow-1 d-flex align-center cursor-pointer" @onclick="() => ViewModel.ToggleCategory(group.Key.Id)">
-                    <MudIcon Icon="@(ViewModel.IsExpanded(group.Key.Id) ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowRight)" 
-                             Size="Size.Small" Class="mr-1" />
-                    <MudText Typo="Typo.overline" Style="letter-spacing: 1px;">@group.Key.Name.ToUpper()</MudText>
-                </div>
-                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
-                               OnClick="@(() => OpenCreateChannelDialog(group.Key.Id))" Class="pa-1" />
-            </div>
+            <div class="category-container">
+                
+                <SidebarCategoryHeader Category="group.Key" 
+                                       ViewModel="ViewModel" 
+                                       OnDelete="ConfirmDelete" 
+                                       OnCreateChannel="OpenCreateChannelDialog" />
 
-            @if (ViewModel.IsExpanded(group.Key.Id))
-            {
-                @foreach (var ch in group)
+                @if (ViewModel.IsExpanded(group.Key.Id))
                 {
-                    <div class="channel-item @ViewModel.GetChannelClass(ch.Id)" @onclick="() => ViewModel.Navigate(ch.Id)">
-                        <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
-                        <span class="channel-name">@ch.Name</span>
-                    </div>
+                    @foreach (var ch in group)
+                    {
+                        <SidebarChannelItem Channel="ch" ViewModel="ViewModel" OnDelete="ConfirmDelete" />
+                    }
                 }
-            }
+            </div>
         }
     }
 </div>
 
-@code {
+@code
+{
+    [Inject] protected ServerChannelsViewModel ViewModel { get; set; } = null!;
+    [Inject] protected IDialogService DialogService { get; set; } = null!;
+
     [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
-    
+
     protected override async Task OnParametersSetAsync() 
         => await ViewModel.InitializeAsync(Server.Id);
-    
+
     protected override void OnInitialized()
     {
         ViewModel.StateChanged += OnViewModelStateChanged;
     }
 
-    private async Task OpenCreateChannelDialog(int? categoryId = null)
+    protected async Task OpenCreateChannelDialog(int? categoryId = null)
     {
         var parameters = new DialogParameters<CreateChannelDialog> 
         { 
@@ -80,7 +75,6 @@
         };
         
         var dialog = await DialogService.ShowAsync<CreateChannelDialog>("New Channel", parameters);
-    
         var result = await dialog.Result;
 
         if (result is { Canceled: false, Data: ChannelDto newChannel })
@@ -89,7 +83,7 @@
         }
     }
 
-    private async Task OpenCreateCategoryDialog()
+    protected async Task OpenCreateCategoryDialog()
     {
         var parameters = new DialogParameters<CreateCategoryDialog> 
         { 
@@ -104,10 +98,29 @@
             ViewModel.AddCategory(newCategory);
         }
     }
-    private void OnViewModelStateChanged()
+
+    protected async Task ConfirmDelete(ISidebarItem item)
     {
-        InvokeAsync(StateHasChanged);
+        var result = await DialogService.ShowMessageBoxAsync(
+            "Warning", 
+            $"Are you sure you want to delete {item.DeleteWarningText}?", 
+            yesText: "Delete!", cancelText: "Cancel");
+
+        if (result == true)
+        {
+            switch (item)
+            {
+                case ChannelDto channel:
+                    ViewModel.DeleteChannel(channel.Id);
+                    break;
+                case CategoryDto category:
+                    ViewModel.DeleteCategory(category.Id);
+                    break;
+            }
+        }
     }
+
+    private void OnViewModelStateChanged() => InvokeAsync(StateHasChanged);
 
     public void Dispose()
     {

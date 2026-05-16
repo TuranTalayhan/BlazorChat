@@ -1,3 +1,4 @@
+using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Client.Features.Servers.Dialogs.AddServer;

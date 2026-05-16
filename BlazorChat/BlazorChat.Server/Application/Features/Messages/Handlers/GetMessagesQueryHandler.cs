@@ -24,7 +24,7 @@ public class GetMessagesQueryHandler(AppDbContext db, IChannelAuthorizationServi
             {
                 Id = m.Id,
                 Content = m.Content,
-                Type = (Shared.DTO.MessageType)m.Type,
+                Type = (MessageType)m.Type,
                 CreatedAt = m.CreatedAt,
                 UpdatedAt = m.UpdatedAt,
                 AuthorId = m.AuthorId,

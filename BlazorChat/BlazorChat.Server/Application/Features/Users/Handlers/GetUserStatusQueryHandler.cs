@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Users.Handlers;
 
-public class GetUserStatusQueryHandler(AppDbContext db) : IQueryHandler<GetUserStatusQuery, ReceiveUserStatus?>
+public class GetUserStatusQueryHandler(AppDbContext db) : IQueryHandler<GetUserStatusQuery, ReceiveUserStatusDto?>
 {
-    public async ValueTask<ReceiveUserStatus?> Handle(GetUserStatusQuery request, CancellationToken ct)
+    public async ValueTask<ReceiveUserStatusDto?> Handle(GetUserStatusQuery request, CancellationToken ct)
     {
         var user = await db.Users
             .AsNoTracking()
@@ -16,7 +16,7 @@ public class GetUserStatusQueryHandler(AppDbContext db) : IQueryHandler<GetUserS
 
         if (user == null) return null;
 
-        return new ReceiveUserStatus
+        return new ReceiveUserStatusDto
         {
             Id = user.Id,
             Status = user.Status

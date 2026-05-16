@@ -1,0 +1,62 @@
+@using System.Text.RegularExpressions
+@using BlazorChat.Shared.Interfaces
+@using BlazorChat.Client.Features.Servers.ViewModels
+
+<div class="channel-item d-flex align-center @ViewModel.GetChannelClass(Channel.Id)" @onclick="() => NavigateToChannel(Channel.Id)">
+    <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
+    
+    @if (ViewModel.EditingChannelId == Channel.Id)
+    {
+        <MudTextField @bind-Value="ViewModel.EditName" 
+                      Immediate="true"
+                      AutoFocus="true" 
+                      Margin="Margin.Dense" 
+                      OnBlur="() => ViewModel.SaveChannelName(Channel)"
+                      OnKeyDown="@(async e => { if (e.Key == "Enter") await ViewModel.SaveChannelName(Channel); })"
+                      @onclick:stopPropagation="true" 
+                      Class="flex-grow-1" />
+    }
+    else
+    {
+        <span class="channel-name flex-grow-1 text-truncate">@Channel.Name</span>
+        <div class="show-on-hover" @onclick:stopPropagation="true">
+            <MudMenu Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => ViewModel.StartEditingChannel(Channel))">Rename</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => OnDelete.InvokeAsync(Channel))">Delete</MudMenuItem>
+            </MudMenu>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ChannelDto Channel { get; set; } = null!;
+    [Parameter, EditorRequired] public ServerChannelsViewModel ViewModel { get; set; } = null!;
+    [Parameter] public EventCallback<ISidebarItem> OnDelete { get; set; }
+    [Inject]  protected NavigationManager NavManager { get; set; } = null!;
+
+    protected override void OnInitialized() {
+        NavManager.LocationChanged += OnLocationChanged;
+        UpdateActiveChannelFromUrl();
+    }
+    
+    private void NavigateToChannel(int channelId)
+    {
+        NavManager.NavigateTo($"/chat/{channelId}");
+        
+        ViewModel.SetActiveChannel(channelId);
+    }
+    
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateActiveChannelFromUrl();
+    }
+    
+    private void UpdateActiveChannelFromUrl()
+    {
+        var match = Regex.Match(NavManager.Uri, @"/chat/(\d+)");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var channelId))
+        {
+            ViewModel.SetActiveChannel(channelId);
+        }
+    }
+}

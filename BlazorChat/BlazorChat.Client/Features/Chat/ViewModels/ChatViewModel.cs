@@ -1,14 +1,13 @@
 using System.Security.Claims;
 using BlazorChat.Client.Features.Authentication;
-using BlazorChat.Client.Features.Chat;
-using BlazorChat.Client.Services;
+using BlazorChat.Client.Features.Chat.Services;
 using BlazorChat.Shared.DTO;
 using Mediator;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace BlazorChat.Client.ViewModels;
+namespace BlazorChat.Client.Features.Chat.ViewModels;
 
-public class ChatViewModel(IMediator mediator, ChatAuthStateProvider auth) : IAsyncDisposable
+public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider auth) : IAsyncDisposable
 {
     private HubConnection? _hub;
 
@@ -53,7 +52,7 @@ public class ChatViewModel(IMediator mediator, ChatAuthStateProvider auth) : IAs
         }
 
         LoadedChannelId = channelId;
-        var fetchedMessages = channelId > 0 ? await mediator.Send(new GetMessagesQuery(channelId)) : [];
+        var fetchedMessages = await apiService.GetMessagesAsync(channelId, CancellationToken.None);
         Messages = fetchedMessages.OrderByDescending(m => m.CreatedAt).ToList();
         OnChanged?.Invoke();
     }
@@ -63,7 +62,7 @@ public class ChatViewModel(IMediator mediator, ChatAuthStateProvider auth) : IAs
         if (string.IsNullOrWhiteSpace(CurrentMessage) || IsSending) return;
         IsSending = true;
         
-        var success = await mediator.Send(new SendMessageCommand(CurrentMessage, LoadedChannelId));
+        var success = await apiService.SendMessageAsync(CurrentMessage, LoadedChannelId);
         if (success) CurrentMessage = "";
         
         IsSending = false;

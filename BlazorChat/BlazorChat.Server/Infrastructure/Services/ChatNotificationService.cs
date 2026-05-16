@@ -23,8 +23,8 @@ public class ChatNotificationService(IHubContext<ChatHub, IChatClient> hubContex
         await hubContext.Clients.Group($"channel:{channelId}").ReceiveMessage(message);
     }
 
-    public async Task SendUserStatusChangedAsync(IReadOnlyList<string> friendIds, ReceiveUserStatus status)
+    public async Task SendUserStatusChangedAsync(IReadOnlyList<string> friendIds, ReceiveUserStatusDto statusDto)
     {
-        await hubContext.Clients.Users(friendIds).UserStatusChanged(status);
+        await hubContext.Clients.Users(friendIds).UserStatusChanged(statusDto);
     }
 }

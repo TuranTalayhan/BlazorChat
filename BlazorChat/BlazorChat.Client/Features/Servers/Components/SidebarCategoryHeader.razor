@@ -1,0 +1,42 @@
+@using BlazorChat.Shared.Interfaces
+@using BlazorChat.Client.Features.Servers.ViewModels
+
+<div class="category-header d-flex align-center mt-2 px-2">
+    <div class="flex-grow-1 d-flex align-center cursor-pointer" @onclick="() => ViewModel.ToggleCategory(Category.Id)">
+        <MudIcon Icon="@(ViewModel.IsExpanded(Category.Id) ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowRight)" 
+                 Size="Size.Small" Class="mr-1" />
+        
+        @if (ViewModel.EditingCategoryId == Category.Id)
+        {
+            <MudTextField @bind-Value="ViewModel.EditName" 
+                          Immediate="true"
+                          AutoFocus="true" 
+                          Margin="Margin.Dense" 
+                          OnBlur="() => ViewModel.SaveCategoryName(Category)"
+                          OnKeyDown="@(async e => { if (e.Key == "Enter") await ViewModel.SaveCategoryName(Category); })"
+                          @onclick:stopPropagation="true" 
+                          Class="flex-grow-1" />
+        }
+        else
+        {
+            <MudText Typo="Typo.overline" Style="letter-spacing: 1px; user-select: none;" Class="flex-grow-1 text-truncate">@Category.Name.ToUpper()</MudText>
+            
+            <div class="show-on-hover" @onclick:stopPropagation="true">
+                <MudMenu Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => ViewModel.StartEditingCategory(Category))">Rename</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => OnDelete.InvokeAsync(Category))">Delete</MudMenuItem>
+                </MudMenu>
+            </div>
+        }
+    </div>
+    
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
+                   OnClick="@(() => OnCreateChannel.InvokeAsync(Category.Id))" Class="pa-1" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CategoryDto Category { get; set; } = null!;
+    [Parameter, EditorRequired] public ServerChannelsViewModel ViewModel { get; set; } = null!;
+    [Parameter] public EventCallback<ISidebarItem> OnDelete { get; set; }
+    [Parameter] public EventCallback<int?> OnCreateChannel { get; set; }
+}

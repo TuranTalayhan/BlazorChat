@@ -1,4 +1,3 @@
-using BlazorChat.Client.Services.Chat;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
 

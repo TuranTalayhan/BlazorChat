@@ -3,7 +3,7 @@ using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Client.Features.Servers.Dialogs.CreateCategory;
 
-public class CreateCategoryViewModel(IChannelApiService apiService)
+public class CreateCategoryViewModel(IChannelsApiService apiService)
 {
     public string CategoryName { get; set; } = string.Empty;
     public bool IsLoading { get; private set; }

@@ -9,7 +9,7 @@ public class ChannelCategory
     [Required, MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    public int SortOrder { get; set; } = 0;
+    public int SortOrder { get; set; }
     
     public int ServerId { get; set; }
     public ChatServer Server { get; set; } = null!;

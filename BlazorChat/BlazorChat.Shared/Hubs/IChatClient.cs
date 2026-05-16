@@ -5,7 +5,7 @@ namespace BlazorChat.Shared.Hubs;
 
 public interface IChatClient
 {
-	Task UserStatusChanged(ReceiveUserStatus updateStatusDto);
+	Task UserStatusChanged(ReceiveUserStatusDto updateStatusDtoDto);
 	Task ReceiveMessage(MessageDto message);
 	
 	Task SendFriendRequest(PendingFriendshipDto pendingFriendship);

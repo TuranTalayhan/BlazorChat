@@ -1,0 +1,44 @@
+.channel-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #5C6067;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.channel-item:hover {
+    background-color: #F2F3F5;
+    color: #060607;
+}
+
+.channel-item.active {
+    background-color: #E3E5E8;
+    color: #060607;
+    font-weight: 600;
+}
+
+.channel-hash {
+    color: #5C6067;
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.channel-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+::deep .show-on-hover {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.channel-item:hover ::deep .show-on-hover {
+    visibility: visible;
+    opacity: 1;
+}

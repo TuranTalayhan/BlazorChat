@@ -3,7 +3,7 @@ using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Client.Features.Servers.Dialogs.CreateChannel;
 
-public class CreateChannelViewModel(IChannelApiService apiService)
+public class CreateChannelViewModel(IChannelsApiService apiService)
 {
     public string ChannelName { get; set; } = string.Empty;
     public string? Category { get; set; }

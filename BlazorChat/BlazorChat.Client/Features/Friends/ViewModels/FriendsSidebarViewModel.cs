@@ -10,7 +10,7 @@ public class FriendsSidebarViewModel : IDisposable
 {
     private readonly IFriendshipApiService _friendshipApiService;
     private readonly IDirectMessageApiService _dmApiService;
-    private readonly IChatHubService _hubService;
+    private readonly IFriendHubService _hubService;
     private readonly NavigationManager _navigationManager;
     
     public event Action? OnStateChanged;
@@ -25,7 +25,7 @@ public class FriendsSidebarViewModel : IDisposable
         (string.IsNullOrWhiteSpace(StatusFilter) || f.Status != UserStatus.Offline)
     );
 
-    public FriendsSidebarViewModel(IFriendshipApiService friendshipApiService, IChatHubService hubService,  NavigationManager navigationManager, IDirectMessageApiService dmApiService)
+    public FriendsSidebarViewModel(IFriendshipApiService friendshipApiService, IFriendHubService hubService,  NavigationManager navigationManager, IDirectMessageApiService dmApiService)
     {
         _friendshipApiService = friendshipApiService;
         _hubService = hubService;
@@ -66,10 +66,10 @@ public class FriendsSidebarViewModel : IDisposable
         _navigationManager.NavigateTo($"/chat/{channelId}");
     }
 
-    private void HandleUserStatusChanged(ReceiveUserStatus status)
+    private void HandleUserStatusChanged(ReceiveUserStatusDto statusDto)
     {
-        if (!Friends.TryGetValue(status.Id, out var friend)) return;
-        friend.Status = status.Status;
+        if (!Friends.TryGetValue(statusDto.Id, out var friend)) return;
+        friend.Status = statusDto.Status;
         OnStateChanged?.Invoke();
     }
     

@@ -1,21 +1,21 @@
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace BlazorChat.Client.Features.Chat.Services;
+namespace BlazorChat.Client.Features.Friends.Services;
 
-public interface IChatHubService : IAsyncDisposable
+public interface IFriendHubService : IAsyncDisposable
 {
-    event Action<ReceiveUserStatus>? OnUserStatusChanged;
+    event Action<ReceiveUserStatusDto>? OnUserStatusChanged;
     event Action<FriendshipDto>? OnNewFriendAdded;
     
     Task ConnectAsync();
 }
 
-public class ChatHubService : IChatHubService
+public class FriendHubService : IFriendHubService
 {
     private HubConnection? _hubConnection;
 
-    public event Action<ReceiveUserStatus>? OnUserStatusChanged;
+    public event Action<ReceiveUserStatusDto>? OnUserStatusChanged;
     public event Action<FriendshipDto>? OnNewFriendAdded;
 
     public async Task ConnectAsync()
@@ -29,7 +29,7 @@ public class ChatHubService : IChatHubService
             })
             .Build();
         
-        _hubConnection.On<ReceiveUserStatus>("UserStatusChanged", userStatus =>
+        _hubConnection.On<ReceiveUserStatusDto>("UserStatusChanged", userStatus =>
         {
             OnUserStatusChanged?.Invoke(userStatus);
         });

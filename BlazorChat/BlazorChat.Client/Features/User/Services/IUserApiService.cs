@@ -14,7 +14,7 @@ public class UserApiService(HttpClient http) : IUserApiService
 {
     public async Task<UserStatus> GetMyStatusAsync(CancellationToken ct)
     {
-        var result = await http.GetFromJsonAsync<ReceiveUserStatus>(ApiRoutes.Users.GetStatus, ct);
+        var result = await http.GetFromJsonAsync<ReceiveUserStatusDto>(ApiRoutes.Users.GetStatus, ct);
         return result?.Status ?? UserStatus.Offline;
     }
 

@@ -1,26 +1,23 @@
-using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Friends.Services;
-using BlazorChat.Client.Services;
+using BlazorChat.Client.Features.Servers;
+using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BlazorChat.Client.ViewModels;
 
-public class TopBarViewModel(IFriendshipApiService apiService) : IAsyncDisposable
+public class TopBarViewModel(IServerApiService serverApiService, IFriendshipApiService friendshipApiService) : IAsyncDisposable
 {
     private HubConnection? _hub;
     
     public List<PendingFriendshipDto> PendingRequests { get; private set; } = [];
     public bool IsInboxOpen { get; set; }
-    
-    // UI Events
     public event Action? OnChanged;
-    // New: Notify the View when a friend request arrives so it can show a notification
     public event Action<string>? OnFriendRequestReceived;
 
     public async Task InitializeAsync()
     {
-        PendingRequests = await apiService.GetPendingRequestsAsync();
+        PendingRequests = await friendshipApiService.GetPendingRequestsAsync();
         await SetupSignalR();
         OnChanged?.Invoke();
     }

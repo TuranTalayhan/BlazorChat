@@ -26,7 +26,7 @@ public class ChatHub : Hub<IChatClient>
             // If this is their very first connection, broadcast them as Online!
             if (currentConnections == 1)
             {
-                var statusUpdate = new ReceiveUserStatus 
+                var statusUpdate = new ReceiveUserStatusDto 
                 { 
                     Id = userId, 
                     Status = UserStatus.Online // Assuming you have an enum or string for this
@@ -55,7 +55,7 @@ public class ChatHub : Hub<IChatClient>
                     // No more active connections, remove them and broadcast Offline
                     UserConnections.TryRemove(userId, out _);
                     
-                    var statusUpdate = new ReceiveUserStatus 
+                    var statusUpdate = new ReceiveUserStatusDto 
                     { 
                         Id = userId, 
                         Status = UserStatus.Offline 
@@ -87,8 +87,8 @@ public class ChatHub : Hub<IChatClient>
     }
     
     /// <summary>Broadcasts a user's status change (Online, Idle, DND) to all clients.</summary>
-    public async Task NotifyStatusChange(ReceiveUserStatus status)
+    public async Task NotifyStatusChange(ReceiveUserStatusDto statusDto)
     {
-        await Clients.All.UserStatusChanged(status);
+        await Clients.All.UserStatusChanged(statusDto);
     }
 }

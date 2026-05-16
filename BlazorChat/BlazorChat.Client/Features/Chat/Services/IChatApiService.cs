@@ -1,12 +1,12 @@
 using System.Net.Http.Json;
 using BlazorChat.Shared.DTO;
 
-namespace BlazorChat.Client.Services.Chat;
+namespace BlazorChat.Client.Features.Chat.Services;
 
 public interface IChatApiService
 {
     Task<List<MessageDto>> GetMessagesAsync(int channelId, CancellationToken ct);
-    Task<bool> SendMessageAsync(string content, int channelId, CancellationToken ct);
+    Task<bool> SendMessageAsync(string content, int channelId);
 }
 
 public class ChatApiService(HttpClient http) : IChatApiService
@@ -16,10 +16,10 @@ public class ChatApiService(HttpClient http) : IChatApiService
         return await http.GetFromJsonAsync<List<MessageDto>>($"api/messages/{channelId}", ct) ?? [];
     }
 
-    public async Task<bool> SendMessageAsync(string content, int channelId, CancellationToken ct)
+    public async Task<bool> SendMessageAsync(string content, int channelId)
     {
         var dto = new { Content = content, ChannelId = channelId };
-        var response = await http.PostAsJsonAsync("api/messages", dto, ct);
+        var response = await http.PostAsJsonAsync("api/messages", dto);
         return response.IsSuccessStatusCode;
     }
 }

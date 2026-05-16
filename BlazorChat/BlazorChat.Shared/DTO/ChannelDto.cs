@@ -1,3 +1,5 @@
+using BlazorChat.Shared.Interfaces;
+
 namespace BlazorChat.Shared.DTO;
 
 public enum ChannelType
@@ -6,7 +8,7 @@ public enum ChannelType
     DirectMessage = 1,
 }
 
-public class ChannelDto
+public class ChannelDto : ISidebarItem
 {
     public int Id { get; set; }
     public string? Name { get; set; } = string.Empty;
@@ -18,4 +20,6 @@ public class ChannelDto
     
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    
+    public string DeleteWarningText => $"the channel #{Name}";
 }

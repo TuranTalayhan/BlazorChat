@@ -8,7 +8,7 @@ namespace BlazorChat.Client.Features.Servers.ViewModels;
 
 public class ServerChannelsViewModel : IDisposable
 {
-    private readonly IChannelApiService _apiService;
+    private readonly IChannelsApiService _apiService;
     private readonly NavigationManager _nav;
     public event Action? StateChanged;
     public List<ChannelDto> Channels { get; private set; } = [];
@@ -17,8 +17,11 @@ public class ServerChannelsViewModel : IDisposable
     private int ActiveChannelId { get; set; }
     private readonly HashSet<int> _collapsedCategories = [];
     private int _currentServerId;
+    public int? EditingChannelId { get; private set; }
+    public int? EditingCategoryId { get; private set; }
+    public string EditName { get; set; } = string.Empty;
 
-    public ServerChannelsViewModel(IChannelApiService apiService, NavigationManager nav)
+    public ServerChannelsViewModel(IChannelsApiService apiService, NavigationManager nav)
     {
         _apiService = apiService;
         _nav = nav;
@@ -39,9 +42,16 @@ public class ServerChannelsViewModel : IDisposable
     {
         IsLoading = true;
         StateChanged?.Invoke();
-        Channels = await _apiService.GetChannelsGetByServerAsync(serverId);
-        Categories = await _apiService.GetCategoriesByServerAsync(serverId);
+        Channels = await _apiService.GetChannelsAsync(serverId);
+        Categories = await _apiService.GetCategoriesAsync(serverId);
         IsLoading = false;
+        StateChanged?.Invoke();
+    }
+    
+    public void SetActiveChannel(int id)
+    {
+        if (ActiveChannelId == id) return;
+        ActiveChannelId = id;
         StateChanged?.Invoke();
     }
 
@@ -60,17 +70,6 @@ public class ServerChannelsViewModel : IDisposable
     public bool IsExpanded(int categoryId) => !_collapsedCategories.Contains(categoryId);
 
     public string GetChannelClass(int channelId) => ActiveChannelId == channelId ? "active" : "";
-
-    public void Navigate(int id)
-    {
-        if (ActiveChannelId != id)
-        {
-            ActiveChannelId = id;
-            StateChanged?.Invoke(); 
-        }
-
-        _nav.NavigateTo($"/chat/{id}");
-    }
 
     public IEnumerable<ChannelDto> RootChannels => 
         Channels.Where(c => c.Category == null).OrderBy(c => c.SortOrder);
@@ -97,17 +96,62 @@ public class ServerChannelsViewModel : IDisposable
         StateChanged?.Invoke();
     }
     
+    public void StartEditingChannel(ChannelDto ch)
+    {
+        EditingChannelId = ch.Id;
+        if (ch.Name != null) EditName = ch.Name;
+        StateChanged?.Invoke();
+    }
+
+    public void StartEditingCategory(CategoryDto category)
+    {
+        EditingChannelId = null;
+        EditingCategoryId = category.Id;
+        EditName = category.Name;
+        StateChanged?.Invoke();
+    }
+
+    public async Task SaveChannelName(ChannelDto channel)
+    {
+        if (EditingChannelId == null) return;
+    
+        channel.Name = EditName; 
+        EditingChannelId = null;
+        StateChanged?.Invoke();
+        
+        await _apiService.UpdateChannelAsync(channel.Id, new UpdateChannelDto { Name = EditName });
+    }
+
+    public async Task SaveCategoryName(CategoryDto category)
+    {
+        if (EditingCategoryId == null) return;
+        
+        category.Name = EditName; 
+        EditingCategoryId = null;
+        StateChanged?.Invoke();
+
+        await _apiService.UpdateCategoryAsync(category.Id, new UpdateCategoryDto { Name = EditName });
+    }
+
+    public void DeleteChannel(int channelId)
+    {
+        _apiService.DeleteChannelAsync(_currentServerId, channelId);
+        Channels.RemoveAll(c => c.Id == channelId);
+    }
+
+    public void DeleteCategory(int categoryId)
+    {
+        _apiService.DeleteCategoryAsync(_currentServerId, categoryId);
+        Categories.RemoveAll(c => c.Id == categoryId);
+    }
+
     public void Dispose() => _nav.LocationChanged -= OnLocationChanged;
 
     private void OnLocationChanged(object? s, LocationChangedEventArgs e) => UpdateActiveChannel();
     
-    public class Grouping<TKey, TElement> : List<TElement>, IGrouping<TKey, TElement>
+    private class Grouping<TKey, TElement>(TKey key, IEnumerable<TElement> elements)
+        : List<TElement>(elements), IGrouping<TKey, TElement>
     {
-        public TKey Key { get; }
-    
-        public Grouping(TKey key, IEnumerable<TElement> elements) : base(elements)
-        {
-            Key = key;
-        }
+        public TKey Key { get; } = key;
     }
 }

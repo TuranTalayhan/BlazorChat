@@ -23,7 +23,7 @@ public class ServersController(IMediator mediator) : ControllerBase
         return int.TryParse(idClaim, out var id) ? id : 0;
     }
 
-    [HttpGet]
+    [HttpGet("@me")]
     public async Task<IActionResult> GetMyServers(CancellationToken ct = default)
     {
         var userId = GetCurrentUserId();

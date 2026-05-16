@@ -2,8 +2,8 @@
 @inject NavigationState NavState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@using BlazorChat.Client.Features.Servers
 @using BlazorChat.Client.Features.Servers.Dialogs.AddServer
+@using BlazorChat.Client.Features.Servers.Services
 @implements IDisposable
 
 <nav class="primary-nav">
@@ -44,12 +44,12 @@
         NavState.OnChanged += StateHasChanged;
         
         ServerRepo.OnChanged += OnServersChanged;
-        _servers = await ServerRepo.GetAllAsync();
+        _servers = await ServerRepo.GetAllMyServersAsync();
     }
 
     private async void OnServersChanged()
     {
-        _servers = await ServerRepo.GetAllAsync();
+        _servers = await ServerRepo.GetAllMyServersAsync();
         await InvokeAsync(StateHasChanged);
     }
 
