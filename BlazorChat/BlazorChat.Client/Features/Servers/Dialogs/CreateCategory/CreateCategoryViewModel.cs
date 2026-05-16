@@ -1,3 +1,5 @@
+using System.Net;
+using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
 
@@ -22,17 +24,17 @@ public class CreateCategoryViewModel(IChannelsApiService apiService)
         StateChanged?.Invoke();
 
         var dto = new CreateCategoryDto { Name = CategoryName.Trim() };
-        
-        var result = await apiService.CreateCategoryAsync(serverId, dto);
+    
+        var response = await apiService.CreateCategoryAsync(serverId, dto);
 
-        if (result == null)
+        if (!response.IsSuccess)
         {
-            ErrorMessage = "Failed to create category. It may already exist.";
+            ErrorMessage = response.ErrorMessage;
         }
 
         IsLoading = false;
         StateChanged?.Invoke();
 
-        return result;
+        return response.IsSuccess ? response.Data : null;
     }
 }

@@ -10,9 +10,9 @@ public class UpdateCategoryHandler(AppDbContext db) : ICommandHandler<UpdateCate
     public async ValueTask<CategoryResult> Handle(UpdateCategoryCommand request, CancellationToken ct)
     {
         var category = await db.ChannelCategories
-            .Include(c => c.Server)
+            .Include(channelCategory => channelCategory.Server)
             .FirstOrDefaultAsync(c => c.Id == request.CategoryId, ct);
-
+        
         if (category == null)
             return CategoryResult.Failure(CategoryError.NotFound, "Category not found.");
 

@@ -65,6 +65,7 @@ public class ServerChannelsViewModel : IDisposable
     {
         if (!_collapsedCategories.Add(categoryId))
             _collapsedCategories.Remove(categoryId);
+        StateChanged?.Invoke();
     }
 
     public bool IsExpanded(int categoryId) => !_collapsedCategories.Contains(categoryId);
@@ -118,7 +119,7 @@ public class ServerChannelsViewModel : IDisposable
         channel.Name = EditName; 
         EditingChannelId = null;
         StateChanged?.Invoke();
-        
+        Console.WriteLine($"Saving channel name: {channel.Name}");
         await _apiService.UpdateChannelAsync(channel.Id, new UpdateChannelDto { Name = EditName });
     }
 
@@ -129,7 +130,7 @@ public class ServerChannelsViewModel : IDisposable
         category.Name = EditName; 
         EditingCategoryId = null;
         StateChanged?.Invoke();
-
+        Console.WriteLine($"Saving category name: {category.Name}");
         await _apiService.UpdateCategoryAsync(category.Id, new UpdateCategoryDto { Name = EditName });
     }
 

@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace BlazorChat.Client.Core;
 
 public static class ApiRoutes
@@ -27,4 +29,21 @@ public static class ApiRoutes
         public const string Status = "api/auth/status";
         public const string Me = "api/auth/me";    
     }
+}
+
+public class ApiResponse<T>
+{
+    public T? Data { get; set; }
+    public bool IsSuccess { get; set; }
+    public HttpStatusCode StatusCode { get; set; }
+    public string? ErrorMessage { get; set; }
+    
+    public bool IsForbidden => StatusCode == HttpStatusCode.Forbidden;
+    public bool IsUnauthorized => StatusCode == HttpStatusCode.Unauthorized;
+    public bool IsNotFound => StatusCode == HttpStatusCode.NotFound;
+}
+
+public class ErrorPayload 
+{
+    public string? Message { get; set; }
 }
