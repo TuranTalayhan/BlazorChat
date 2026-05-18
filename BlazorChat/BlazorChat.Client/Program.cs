@@ -7,7 +7,6 @@ using BlazorChat.Client.Features.DirectMessage;
 using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Client.Features.Friends.ViewModels;
 using BlazorChat.Client.Features.Notifications.ViewModel;
-using BlazorChat.Client.Features.Servers;
 using BlazorChat.Client.Features.Servers.Dialogs.AddServer;
 using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory;
 using BlazorChat.Client.Features.Servers.Dialogs.CreateChannel;
@@ -43,10 +42,6 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddMudServices();
-builder.Services.AddMediator(options => 
-{
-    options.ServiceLifetime = ServiceLifetime.Scoped;
-});
 
 
 builder.Services.AddScoped<LoginViewModel>();

@@ -1,15 +1,14 @@
 using System.Text.RegularExpressions;
-using BlazorChat.Client.Features.Channels;
 using BlazorChat.Client.Features.Servers.Dialogs.CreateChannel;
+using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
-using Mediator;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using MudBlazor;
 
 namespace BlazorChat.Client.Features.Servers.ViewModels;
 
-public class SidebarViewModel(IMediator mediator, NavigationManager nav, IDialogService dialog)
+public class SidebarViewModel(IChannelsApiService apiService, NavigationManager nav, IDialogService dialog)
 {
     public List<ChannelDto> Channels { get; private set; } = [];
     public bool IsLoading { get; private set; }
@@ -22,7 +21,7 @@ public class SidebarViewModel(IMediator mediator, NavigationManager nav, IDialog
     public async Task LoadChannelsAsync(int serverId)
     {
         IsLoading = true;
-        Channels = await mediator.Send(new GetChannelsQuery(serverId));
+        Channels = await apiService.GetChannelsAsync(serverId);
         UpdateActiveChannel();
         IsLoading = false;
     }
