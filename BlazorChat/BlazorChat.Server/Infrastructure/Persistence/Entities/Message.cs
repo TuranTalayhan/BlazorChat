@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BlazorChat.Shared.Constants;
 
 namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
 
@@ -14,7 +15,7 @@ public class Message
     public int Id { get; set; }
 
     [Required]
-    [MaxLength(2000)]
+    [MaxLength(ChatConstants.MaxMessageLength)]
     public string Content { get; set; } = string.Empty;
 
     public MessageType Type { get; set; } = MessageType.Text;

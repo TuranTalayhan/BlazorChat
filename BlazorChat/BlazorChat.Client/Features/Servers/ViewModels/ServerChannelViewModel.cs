@@ -88,6 +88,11 @@ public class ServerChannelsViewModel : IDisposable
     public void AddChannel(ChannelDto channel)
     {
         Channels.Add(channel);
+
+        if (channel.Category != null && Categories.All(c => c.Id != channel.Id))
+        {
+            Categories.Add(channel.Category);
+        }
     }
     
     public void AddCategory(CategoryDto newCategory)
