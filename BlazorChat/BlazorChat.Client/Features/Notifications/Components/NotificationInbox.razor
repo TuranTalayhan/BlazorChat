@@ -1,30 +1,26 @@
-@using BlazorChat.Client.Features.Notifications.ViewModel
-@inject NotificationInboxViewModel ViewModel
-
 <MudPopover Open="@IsInboxOpen"
             Fixed="true"
             AnchorOrigin="Origin.BottomRight"
             TransformOrigin="Origin.TopRight"
             Class="pa-4 inbox-popover-panel"
-            Style="width: 300px; max-height: 400px; overflow-y: auto;"
-            >
+            Style="width: 300px; max-height: 400px; overflow-y: auto;">
     
     <div class="d-flex align-center justify-space-between mb-2">
         <MudText Typo="Typo.subtitle2">Friend Requests</MudText>
         <MudIconButton Icon="@Icons.Material.Filled.Close" 
                        Size="Size.Small" 
-                       OnClick="@(() => IsInboxOpen = !IsInboxOpen)" />
+                       OnClick="@(() => IsInboxOpenChanged.InvokeAsync(false))" />
     </div>
     
     <MudDivider Class="mb-2" />
 
-    @if (!ViewModel.PendingRequests.Any())
+    @if (!Requests.Any())
     {
         <MudText Typo="Typo.body2" Align="Align.Center" Class="py-4">No new requests</MudText>
     }
     else
     {
-        @foreach (var request in ViewModel.PendingRequests)
+        @foreach (var request in Requests)
         {
             <div class="d-flex align-center gap-3 py-2 border-bottom">
                 <MudAvatar Size="Size.Small">@request.RequesterUsername[0]</MudAvatar>
@@ -35,11 +31,11 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Check" 
                                    Color="Color.Success" 
                                    Size="Size.Small"
-                                   OnClick="@(() => ViewModel.HandleRequestAsync(request, true))" />
+                                   OnClick="@(() => OnRespond.InvokeAsync((request, true)))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Close" 
                                    Color="Color.Error" 
                                    Size="Size.Small"
-                                   OnClick="@CloseInbox" />
+                                   OnClick="@(() => OnRespond.InvokeAsync((request, false)))" />
                 </div>
             </div>
         }
@@ -49,14 +45,8 @@
 @code {
     [Parameter] public bool IsInboxOpen { get; set; }
     [Parameter] public EventCallback<bool> IsInboxOpenChanged { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await ViewModel.InitializeAsync();
-    }
     
-    private async Task CloseInbox()
-    {
-        await IsInboxOpenChanged.InvokeAsync(false);
-    }
+    [Parameter] public List<PendingFriendshipDto> Requests { get; set; } = [];
+    
+    [Parameter] public EventCallback<(PendingFriendshipDto request, bool accept)> OnRespond { get; set; }
 }

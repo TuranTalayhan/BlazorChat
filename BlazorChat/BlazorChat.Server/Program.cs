@@ -17,16 +17,13 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         
-        // CORS: allow client origins configured via configuration key "ClientOrigins"
-        // Support either a semicolon-separated string or an array in configuration.
         string[] clientOrigins;
         var originsSection = builder.Configuration.GetSection("ClientOrigins");
         if (originsSection.Exists())
         {
-            // If configured as array, bind it; otherwise fall back to semicolon-separated string
             if (originsSection.Value is null)
             {
-                clientOrigins = originsSection.Get<string[]>() ?? Array.Empty<string>();
+                clientOrigins = originsSection.Get<string[]>() ?? [];
             }
             else
             {
@@ -35,7 +32,7 @@ public class Program
         }
         else
         {
-            clientOrigins = new[] { "http://localhost:5173" };
+            clientOrigins = ["http://localhost:5173"];
         }
 
         builder.Services.AddCors(options =>
@@ -78,6 +75,8 @@ public class Program
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUserContext, UserContext>();
         builder.Services.AddScoped<IChatNotificationService, ChatNotificationService>();
+        builder.Services.AddScoped<IFriendNotificationService, FriendNotificationService>();
+        builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
         builder.Services.AddScoped<IChannelAuthorizationService, ChannelAuthorizationService>();
         builder.Services.AddScoped<ICategoryManager, CategoryManager>();
         builder.Services.AddMediator(options => 
@@ -180,10 +179,13 @@ public class Program
         app.UseCors("AllowClient");
         app.UseAuthentication();
         app.UseAuthorization();
-
         app.MapControllers();
+        
         app.MapHub<ChatHub>("/hubs/chat");
+        app.MapHub<FriendHub>("/hubs/friend");
+        app.MapHub<UserHub>("/hubs/user");
+        app.MapHub<ServerHub>("/hubs/server");
 
-        app.Run();
+        await app.RunAsync();
     }
 }

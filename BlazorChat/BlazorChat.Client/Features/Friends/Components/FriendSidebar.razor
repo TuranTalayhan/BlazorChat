@@ -12,22 +12,33 @@
 </div>
 
 <div class="segmented-control">
-    <button class="segment @(ViewModel.StatusFilter == "" ? "active" : "")"
-            @onclick='() => ViewModel.SetActiveFilter("")'>All</button>
-    <button class="segment @(ViewModel.StatusFilter == "online" ? "active" : "")"
-            @onclick='() => ViewModel.SetActiveFilter("online")'>Online</button>
+    <button class="segment @(ViewModel.StatusFilter == FriendFilter.All ? "active" : "")"
+            @onclick="() => ViewModel.SetActiveFilter(FriendFilter.All)">All</button>
+    <button class="segment @(ViewModel.StatusFilter == FriendFilter.Online ? "active" : "")"
+            @onclick="() => ViewModel.SetActiveFilter(FriendFilter.Online)">Online</button>
 </div>
 
 <div class="channel-list">
     @foreach (var friend in ViewModel.FilteredFriends)
     {
+        bool hasUnread = ViewModel.UnreadFriends.Contains(friend.FriendId);
+        
         <div class="friend-item @(ViewModel.ActiveFriendId == friend.FriendId ? "active" : "")" 
              @onclick="@(() => ViewModel.OpenChatWithFriend(friend.FriendId))">
+             
             <div class="avatar">
                 <span>@friend.Username.ToUpper()[0]</span>
                 <div class="status @FriendsSidebarViewModel.GetStatusClass(friend.Status)"></div>
             </div>
-            <span class="friend-name">@friend.Username</span>
+            
+            <span class="friend-name flex-grow-1" style="@(hasUnread ? "font-weight: 800; color: black;" : "")">
+                @friend.Username
+            </span>
+
+            @if (hasUnread)
+            {
+                <div style="width: 8px; height: 8px; background-color: #f04747; border-radius: 50%; margin-left: auto;"></div>
+            }
         </div>
     }
 </div>

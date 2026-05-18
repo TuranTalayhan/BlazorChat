@@ -23,7 +23,6 @@ public class User
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Relationships
     public ICollection<Friendship> SentRequests { get; set; } = new List<Friendship>();
     public ICollection<Friendship> ReceivedRequests { get; set; } = new List<Friendship>();
     public ICollection<ServerMembership> ServerMemberships { get; set; } = new List<ServerMembership>();

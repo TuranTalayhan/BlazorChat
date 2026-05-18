@@ -61,4 +61,15 @@ public class MessagesController(IMediator mediator) : ControllerBase
 
         return Ok(result.Data);
     }
+    
+    [HttpGet("unread-states")]
+    public async Task<IActionResult> GetUnreadStatuses(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await mediator.Send(new GetUnreadStatusesQuery(userId), ct);
+        
+        return Ok(result);
+    }
 }

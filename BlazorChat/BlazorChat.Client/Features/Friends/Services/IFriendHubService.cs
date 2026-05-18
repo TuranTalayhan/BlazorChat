@@ -5,49 +5,43 @@ namespace BlazorChat.Client.Features.Friends.Services;
 
 public interface IFriendHubService : IAsyncDisposable
 {
-    event Action<ReceiveUserStatusDto>? OnUserStatusChanged;
     event Action<FriendshipDto>? OnNewFriendAdded;
-    
+    event Action<PendingFriendshipDto>? OnFriendRequestReceived;
     Task ConnectAsync();
 }
 
 public class FriendHubService : IFriendHubService
 {
     private HubConnection? _hubConnection;
-
-    public event Action<ReceiveUserStatusDto>? OnUserStatusChanged;
     public event Action<FriendshipDto>? OnNewFriendAdded;
+    public event Action<PendingFriendshipDto>? OnFriendRequestReceived;
 
     public async Task ConnectAsync()
     {
         if (_hubConnection is not null) return; 
+
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7138/hubs/chat", options =>
+            .WithUrl("http://localhost:7138/hubs/friend", options => 
             {
-                options.HttpMessageHandlerFactory = innerHandler => 
-                    new CookieHandler { InnerHandler = innerHandler }; 
+                options.HttpMessageHandlerFactory = innerHandler => new CookieHandler { InnerHandler = innerHandler }; 
             })
             .Build();
         
-        _hubConnection.On<ReceiveUserStatusDto>("UserStatusChanged", userStatus =>
-        {
-            OnUserStatusChanged?.Invoke(userStatus);
-        });
-        
-        _hubConnection.On<FriendshipDto>("NewFriendAdded", friend =>
+        _hubConnection.On<FriendshipDto>("ReceiveNewFriend", friend =>
         {
             OnNewFriendAdded?.Invoke(friend);
         });
-        
+
+        _hubConnection.On<PendingFriendshipDto>("ReceiveFriendRequest", friend =>
+        {
+            OnFriendRequestReceived?.Invoke(friend);
+        });
 
         await _hubConnection.StartAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection != null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
+        if (_hubConnection != null) await _hubConnection.DisposeAsync();
     }
 }

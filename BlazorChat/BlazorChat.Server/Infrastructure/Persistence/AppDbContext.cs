@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ServerMembership> ServerMemberships { get; set; }
     public DbSet<Message> Messages { get; set; }
     
+    public DbSet<UserChannelState> UserChannelStates { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ── User ───────────────────────────────────────────────────────────────
@@ -110,5 +112,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         
         modelBuilder.Entity<Message>()
             .HasIndex(m => new { m.ChannelId, m.CreatedAt });
+            
+        modelBuilder.Entity<UserChannelState>()
+            .HasKey(ucs => new { ucs.UserId, ucs.ChannelId });
+
+        modelBuilder.Entity<UserChannelState>()
+            .HasOne(ucs => ucs.User)
+            .WithMany() 
+            .HasForeignKey(ucs => ucs.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserChannelState>()
+            .HasOne(ucs => ucs.Channel)
+            .WithMany()
+            .HasForeignKey(ucs => ucs.ChannelId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

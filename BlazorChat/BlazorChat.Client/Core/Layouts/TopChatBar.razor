@@ -28,11 +28,14 @@
         
         <div class="inbox-container">
             <MudBadge Content="@ViewModel.PendingRequests.Count" 
-                      Visible="@(ViewModel.PendingRequests.Count > 0)" >
+                      Visible="@(ViewModel.PendingRequests.Count > 0)" Color="Color.Error">
                 <MudIconButton Icon="@Icons.Material.Filled.Inbox" 
                                OnClick="@(() => ViewModel.IsInboxOpen = !ViewModel.IsInboxOpen)" />
             </MudBadge>
-            <NotificationInbox @bind-IsInboxOpen="@ViewModel.IsInboxOpen" />
+    
+            <NotificationInbox @bind-IsInboxOpen="@ViewModel.IsInboxOpen" 
+                               Requests="@ViewModel.PendingRequests"
+                               OnRespond="@(args => ViewModel.RespondToRequestAsync(args.request, args.accept))" />
         </div>
     </div>
 </div>
@@ -49,7 +52,7 @@
     protected override async Task OnInitializedAsync()
     {
         ViewModel.OnChanged += StateHasChanged;
-        ViewModel.OnFriendRequestReceived += (user) => Snackbar.Add($"New request from {user}", Severity.Info);
+        ViewModel.OnFriendRequestNotification += (user) => Snackbar.Add($"New request from {user}", Severity.Info);
         
         await ViewModel.InitializeAsync();
     }

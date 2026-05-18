@@ -7,6 +7,8 @@ public interface IChatApiService
 {
     Task<List<MessageDto>> GetMessagesAsync(int channelId, CancellationToken ct);
     Task<bool> SendMessageAsync(string content, int channelId);
+    
+    Task<List<ChannelUnreadStatusDto>> GetUnreadStatusesAsync(CancellationToken ct = default);
 }
 
 public class ChatApiService(HttpClient http) : IChatApiService
@@ -21,5 +23,18 @@ public class ChatApiService(HttpClient http) : IChatApiService
         var dto = new { Content = content, ChannelId = channelId };
         var response = await http.PostAsJsonAsync("api/messages", dto);
         return response.IsSuccessStatusCode;
+    }
+    
+    public async Task<List<ChannelUnreadStatusDto>> GetUnreadStatusesAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await http.GetFromJsonAsync<List<ChannelUnreadStatusDto>>("api/messages/unread-states", ct);
+            return response ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

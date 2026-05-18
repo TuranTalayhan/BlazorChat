@@ -69,4 +69,15 @@ public class FriendshipsController(IMediator mediator) : ControllerBase
 
         return Ok();
     }
+    
+    [HttpGet("sidebar-summary")]
+    public async Task<IActionResult> GetSidebarSummary(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == 0) return Unauthorized();
+
+        var summary = await mediator.Send(new GetFriendsSummaryQuery(userId), ct);
+
+        return Ok(summary);
+    }
 }

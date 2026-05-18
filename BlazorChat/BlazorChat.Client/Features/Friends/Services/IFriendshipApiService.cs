@@ -9,6 +9,8 @@ public interface IFriendshipApiService
     Task<bool> RespondToRequestAsync(int requesterId, bool accept, CancellationToken ct = default);
     
     Task<List<FriendshipDto>> GetFriendsAsync(CancellationToken ct = default);
+    
+    Task<List<SidebarFriendSummaryDto>> GetFriendsSummaryAsync(CancellationToken ct = default);
 }
 
 public class FriendshipApiService(HttpClient http) : IFriendshipApiService
@@ -27,5 +29,18 @@ public class FriendshipApiService(HttpClient http) : IFriendshipApiService
         var res = await http.GetAsync($"api/friendships", ct);
         if (!res.IsSuccessStatusCode) return [];
         return await res.Content.ReadFromJsonAsync<List<FriendshipDto>>(ct) ?? [];  
+    }
+    
+    public async Task<List<SidebarFriendSummaryDto>> GetFriendsSummaryAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await http.GetFromJsonAsync<List<SidebarFriendSummaryDto>>("api/friendships/sidebar-summary", ct);
+            return response ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

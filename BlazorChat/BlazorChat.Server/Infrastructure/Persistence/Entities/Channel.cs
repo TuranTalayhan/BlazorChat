@@ -10,12 +10,12 @@ public class Channel
     [MaxLength(100)]
     public string? Name { get; set; } = string.Empty;
 
-    public int SortOrder { get; set; } = 0;
+    public int SortOrder { get; set; }
     
     public ChannelType Type { get; set; } = ChannelType.Server;
 
     public int? ServerId { get; set; }
-    public ChatServer? Server { get; set; } = null!;
+    public ChatServer? Server { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

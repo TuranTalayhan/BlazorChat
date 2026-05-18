@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Friendships.Handlers;
 
-public class SendFriendRequestCommandHandler(AppDbContext db, IChatNotificationService notifications) 
+public class SendFriendRequestCommandHandler(AppDbContext db, IFriendNotificationService notifications) 
     : ICommandHandler<SendFriendRequestCommand, FriendshipResult>
 {
     public async ValueTask<FriendshipResult> Handle(SendFriendRequestCommand request, CancellationToken ct)

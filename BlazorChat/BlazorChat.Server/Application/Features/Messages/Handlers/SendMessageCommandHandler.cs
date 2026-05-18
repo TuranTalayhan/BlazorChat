@@ -4,6 +4,7 @@ using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using BlazorChat.Shared.DTO;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Messages.Handlers;
 
@@ -22,6 +23,7 @@ public class SendMessageCommandHandler(AppDbContext db, IChannelAuthorizationSer
         if (user == null)
             return new MessageResult<MessageDto>(false, Error: MessageError.NotFound, ErrorMessage: "User not found.");
 
+        // 1. Save the new message to the database
         var message = new Message
         {
             Content = request.Dto.Content.Trim(),
@@ -44,7 +46,18 @@ public class SendMessageCommandHandler(AppDbContext db, IChannelAuthorizationSer
             ChannelId = message.ChannelId
         };
 
-        await notifications.SendMessageToChannelAsync(request.Dto.ChannelId, messageDto);
+        // 2. DYNAMICALLY FIND THE RECIPIENT
+        // Look up the channel members to see who the OTHER person is
+        var recipientUserId = await db.Channels
+            .Where(c => c.Id == request.Dto.ChannelId)
+            .SelectMany(c => c.Members)
+            .Where(m => m.Id != request.CurrentUserId) // Exclude the sender
+            .Select(m => m.Id)
+            .FirstOrDefaultAsync(ct);
+
+        // 3. Dispatch the notification out through your updated service
+        // (recipientUserId will be 0 if it's a server channel with no explicit "other" single member)
+        await notifications.SendMessageToChannelAsync(request.Dto.ChannelId, recipientUserId, messageDto);
 
         return new MessageResult<MessageDto>(true, Data: messageDto);
     }

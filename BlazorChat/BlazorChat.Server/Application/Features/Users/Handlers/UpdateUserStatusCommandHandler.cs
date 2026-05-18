@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Users.Handlers;
 
-public class UpdateUserStatusCommandHandler(AppDbContext db, IChatNotificationService notifications) 
+public class UpdateUserStatusCommandHandler(AppDbContext db, IUserNotificationService notifications) 
     : ICommandHandler<UpdateUserStatusCommand, bool>
 {
     public async ValueTask<bool> Handle(UpdateUserStatusCommand request, CancellationToken ct)
