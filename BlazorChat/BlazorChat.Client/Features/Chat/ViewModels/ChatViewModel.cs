@@ -17,6 +17,10 @@ public class ChatViewModel : IDisposable
     public int LoadedChannelId { get; private set; }
     public int CurrentUserId { get; private set; }
     
+    public bool IsLoadingMore { get; private set; }
+    public bool HasMoreMessages { get; private set; } = true;
+    private const int ChunkSize = 50;
+
     public event Action? OnChanged;
 
     public ChatViewModel(IChatApiService apiService, ChatAuthStateProvider auth, IChatHubService chatHubService)
@@ -41,7 +45,7 @@ public class ChatViewModel : IDisposable
     {
         if (msg.ChannelId != LoadedChannelId) return;
         
-        Messages = Messages.Prepend(msg).ToList();
+        Messages.Insert(0, msg);
         OnChanged?.Invoke();
         
         _chatHubService.MarkAsReadAsync(msg.ChannelId, msg.Id);
@@ -49,31 +53,54 @@ public class ChatViewModel : IDisposable
 
     public async Task LoadChannelAsync(int channelId)
     {
+        if(channelId == 0) return;
         if (channelId == LoadedChannelId) return;
 
-        if (LoadedChannelId > 0) await _chatHubService.LeaveChannelAsync(LoadedChannelId);
+        if (LoadedChannelId > 0)
+        {
+            await _chatHubService.LeaveChannelAsync(LoadedChannelId);
+        }
 
         LoadedChannelId = channelId;
-
-        if (channelId == 0)
-        {
-            Messages = [];
-            CurrentMessage = "";
-            OnChanged?.Invoke();
-            return;
-        }
+        Messages = [];
+        HasMoreMessages = true;
 
         await _chatHubService.JoinChannelAsync(channelId);
 
-        var fetchedMessages = await _apiService.GetMessagesAsync(channelId, CancellationToken.None);
-        Messages = fetchedMessages.OrderByDescending(m => m.CreatedAt).ToList();
+        var fetchedMessages = await _apiService.GetMessagesAsync(channelId, ChunkSize, null);
+    
+        if (fetchedMessages.Count < ChunkSize)
+        {
+            HasMoreMessages = false;
+        }
+        
+        Messages = fetchedMessages; 
+    
+        OnChanged?.Invoke();
+    }
+
+    public async Task LoadNextChunkAsync()
+    {
+        if (IsLoadingMore || !HasMoreMessages || LoadedChannelId == 0) return;
+
+        IsLoadingMore = true;
         OnChanged?.Invoke();
 
-        var latestMessage = Messages.FirstOrDefault();
-        if (latestMessage != null)
+        var oldestMessage = Messages.LastOrDefault();
+        DateTime? cursorTime = oldestMessage?.CreatedAt;
+        int? cursorId = oldestMessage?.Id;
+
+        var fetchedMessages = await _apiService.GetMessagesAsync(LoadedChannelId, ChunkSize, cursorTime, cursorId);
+
+        if (fetchedMessages.Count < ChunkSize)
         {
-            await _chatHubService.MarkAsReadAsync(channelId, latestMessage.Id);
+            HasMoreMessages = false; 
         }
+
+        Messages.AddRange(fetchedMessages);
+
+        IsLoadingMore = false;
+        OnChanged?.Invoke();
     }
 
     public async Task SendAsync()

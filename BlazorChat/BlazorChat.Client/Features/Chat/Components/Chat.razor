@@ -16,10 +16,31 @@
     else
     {
         <div class="message-scroll-container">
-            @foreach (var msg in ViewModel.Messages)
+            @if (ViewModel.HasMoreMessages)
             {
-                <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
+                <div class="load-more-sentinel" style="text-align: center; padding: 12px; color: #b9bbbe;">
+                    @if (ViewModel.IsLoadingMore)
+                    {
+                        <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small" />
+                        <span style="margin-left: 8px; font-size: 0.85rem;">Loading past history...</span>
+                    }
+                    else
+                    {
+                        <button type="button" class="load-more-btn" @onclick="ViewModel.LoadNextChunkAsync" 
+                                style="background: none; border: none; color: #00b0f4; cursor: pointer; font-size: 0.85rem;">
+                            Load older messages
+                        </button>
+                    }
+                </div>
             }
+            
+            <Virtualize Items="ViewModel.Messages" Context="msg" OverscanCount="10" ItemSize="70">
+                <ItemTemplate>
+                    <div @key="msg.Id" class="message-item-wrapper">
+                        <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
+                    </div>
+                </ItemTemplate>
+            </Virtualize>
         </div>
 
         <div class="chat-input-wrapper">

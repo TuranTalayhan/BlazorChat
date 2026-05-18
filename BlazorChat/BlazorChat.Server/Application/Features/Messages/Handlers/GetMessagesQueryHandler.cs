@@ -12,14 +12,28 @@ public class GetMessagesQueryHandler(AppDbContext db, IChannelAuthorizationServi
 {
     public async ValueTask<MessageResult<List<MessageDto>>> Handle(GetMessagesQuery request, CancellationToken ct)
     {
-        if (!await authService.CanAccessChannelAsync(request.CurrentUserId, request.ChannelId, ct))
+        if (!await authService.CanAccessChannelAsync(request.UserId, request.ChannelId, ct))
             return new MessageResult<List<MessageDto>>(false, Error: MessageError.Forbidden, ErrorMessage: "Access denied.");
+        
+        var query = db.Messages.Where(m => m.ChannelId == request.ChannelId);
 
-        var messages = await db.Messages
-            .Include(m => m.Author)
-            .Where(m => m.ChannelId == request.ChannelId)
+        if (request.BeforeTimestamp.HasValue && request.ExclusiveMessageId.HasValue)
+        {
+            var cursorTime = request.BeforeTimestamp.Value;
+            var cursorId = request.ExclusiveMessageId.Value;
+
+            query = query.Where(m => m.CreatedAt < cursorTime || 
+                                     (m.CreatedAt == cursorTime && m.Id < cursorId));
+        }
+        else if (request.BeforeTimestamp.HasValue)
+        {
+            query = query.Where(m => m.CreatedAt < request.BeforeTimestamp.Value);
+        }
+        
+        var messages = await query
             .OrderByDescending(m => m.CreatedAt)
-            .Take(request.Count)
+            .ThenByDescending(m => m.Id)
+            .Take(request.Count)                 
             .Select(m => new MessageDto
             {
                 Id = m.Id,
@@ -33,8 +47,7 @@ public class GetMessagesQueryHandler(AppDbContext db, IChannelAuthorizationServi
                 ChannelId = m.ChannelId
             })
             .ToListAsync(ct);
-
-        messages.Reverse();
+        
         return new MessageResult<List<MessageDto>>(true, Data: messages);
     }
 }

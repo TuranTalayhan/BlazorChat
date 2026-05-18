@@ -1,3 +1,36 @@
+.message-scroll-container {
+    flex: 1;
+    height: calc(100vh - 140px);
+    min-height: 0;
+    padding: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* THE VISUAL ANCHOR FIX:
+       Flips the rendering container layout seamlessly from the bottom-up.
+       This automatically stops scrolling jumps when dynamic element heights load in.
+    */
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.load-more-sentinel {
+    overflow-anchor: none;
+    text-align: center;
+    padding: 12px;
+    width: 100%;
+}
+
+.message-scroll-container > div {
+    width: 100%;
+}
+
+.message-item-wrapper {
+    display: block;
+    min-height: 68px;
+    content-visibility: auto;
+}
+
 /* Container for the entire 3rd column */
 .chat-container {
     display: flex;
@@ -10,21 +43,15 @@
     height: 92vh;
 }
 
-.message-scroll-container {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column-reverse;
-    min-height: 0; 
-    padding: 20px;
-}
-
-/* Scrollable message area */
 .messages-list {
     display: flex;
     flex-direction: column; /* Messages still flow top-to-bottom internally */
     gap: 15px;
     padding-right: 10px; /* Space for the scrollbar */
+}
+
+.message-item-wrapper * {
+    transition: none !important;
 }
 
 /* Individual message styling */

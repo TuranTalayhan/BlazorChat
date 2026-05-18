@@ -21,12 +21,17 @@ public class MessagesController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{channelId:int}")]
-    public async Task<IActionResult> GetMessages(int channelId, [FromQuery] int count = 50, CancellationToken ct = default)
+    public async Task<IActionResult> GetMessages(
+        int channelId, 
+        [FromQuery] int count = 50, 
+        [FromQuery] DateTime? before = null, 
+        [FromQuery] int? messageId = null,
+        CancellationToken ct = default)
     {
         var userId = GetCurrentUserId();
         if (userId == 0) return Unauthorized();
 
-        var result = await mediator.Send(new GetMessagesQuery(userId, channelId, count), ct);
+        var result = await mediator.Send(new GetMessagesQuery(userId, channelId, count, before, messageId), ct);
 
         if (!result.IsSuccess)
         {

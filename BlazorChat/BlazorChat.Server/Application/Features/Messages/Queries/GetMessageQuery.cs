@@ -3,4 +3,5 @@ using Mediator;
 
 namespace BlazorChat.Server.Application.Features.Messages.Queries;
 
-public record GetMessagesQuery(int CurrentUserId, int ChannelId, int Count) : IQuery<MessageResult<List<MessageDto>>>;
+public record GetMessagesQuery(int UserId, int ChannelId, int Count, DateTime? BeforeTimestamp, int? ExclusiveMessageId) 
+    : IQuery<MessageResult<List<MessageDto>>>;

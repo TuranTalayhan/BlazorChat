@@ -5,17 +5,29 @@ namespace BlazorChat.Client.Features.Chat.Services;
 
 public interface IChatApiService
 {
-    Task<List<MessageDto>> GetMessagesAsync(int channelId, CancellationToken ct);
+    public Task<List<MessageDto>> GetMessagesAsync(int channelId, int count, DateTime? before = null,
+        int? cursorId = null, CancellationToken ct = default);
     Task<bool> SendMessageAsync(string content, int channelId);
-    
     Task<List<ChannelUnreadStatusDto>> GetUnreadStatusesAsync(CancellationToken ct = default);
 }
 
 public class ChatApiService(HttpClient http) : IChatApiService
 {
-    public async Task<List<MessageDto>> GetMessagesAsync(int channelId, CancellationToken ct)
+    public async Task<List<MessageDto>> GetMessagesAsync(int channelId, int count, DateTime? before = null, int? cursorId = null, CancellationToken ct = default)
     {
-        return await http.GetFromJsonAsync<List<MessageDto>>($"api/messages/{channelId}", ct) ?? [];
+        var url = $"api/messages/{channelId}?count={count}";
+        
+        if (before.HasValue)
+        {
+            url += $"&before={Uri.EscapeDataString(before.Value.ToString("o"))}";
+        }
+
+        if (cursorId.HasValue)
+        {
+            url += $"&messageId={cursorId.Value}";
+        }
+
+        return await http.GetFromJsonAsync<List<MessageDto>>(url, ct) ?? [];
     }
 
     public async Task<bool> SendMessageAsync(string content, int channelId)
