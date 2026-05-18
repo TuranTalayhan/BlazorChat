@@ -1,8 +1,9 @@
-using BlazorChat.Client.Features.Chat.Services;
+using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.DirectMessage;
 using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace BlazorChat.Client.Features.Friends.ViewModels;
 
@@ -12,6 +13,7 @@ public class FriendsSidebarViewModel : IDisposable
     private readonly IDirectMessageApiService _dmApiService;
     private readonly IFriendHubService _hubService;
     private readonly NavigationManager _navigationManager;
+    private readonly AppState _appState;
     
     public event Action? OnStateChanged;
 
@@ -25,13 +27,18 @@ public class FriendsSidebarViewModel : IDisposable
         (string.IsNullOrWhiteSpace(StatusFilter) || f.Status != UserStatus.Offline)
     );
 
-    public FriendsSidebarViewModel(IFriendshipApiService friendshipApiService, IFriendHubService hubService,  NavigationManager navigationManager, IDirectMessageApiService dmApiService)
+    public FriendsSidebarViewModel(
+        IFriendshipApiService friendshipApiService, 
+        IFriendHubService hubService,  
+        NavigationManager navigationManager, 
+        IDirectMessageApiService dmApiService, 
+        AppState appState)
     {
         _friendshipApiService = friendshipApiService;
         _hubService = hubService;
         _navigationManager = navigationManager;
         _dmApiService = dmApiService;
-
+        _appState = appState;
 
         _hubService.OnUserStatusChanged += HandleUserStatusChanged;
         _hubService.OnNewFriendAdded += HandleNewFriend;
@@ -43,8 +50,11 @@ public class FriendsSidebarViewModel : IDisposable
         foreach (var friend in friendsList)
         {
             Friends[friend.FriendId] = friend;
+            if (_appState.LastSelectedFriend?.FriendId == friend.FriendId)
+            {
+                ActiveFriendId = friend.FriendId;
+            }
         }
-
         await _hubService.ConnectAsync();
         OnStateChanged?.Invoke();
     }
@@ -58,11 +68,12 @@ public class FriendsSidebarViewModel : IDisposable
     public async Task OpenChatWithFriend(int friendId)
     {
         ActiveFriendId = friendId;
-    
         OnStateChanged?.Invoke();
-
-        var channelId =  await _dmApiService.OpenDirectMessageAsync(friendId);
         
+        var channelId = await _dmApiService.OpenDirectMessageAsync(friendId);
+        
+        _appState.SetLastSelectedFriend(friendId, channelId);
+
         _navigationManager.NavigateTo($"/chat/{channelId}");
     }
 
@@ -73,7 +84,7 @@ public class FriendsSidebarViewModel : IDisposable
         OnStateChanged?.Invoke();
     }
     
-    public string GetStatusClass(UserStatus status) => status switch
+    public static string GetStatusClass(UserStatus status) => status switch
     {
         UserStatus.Online => "online",
         UserStatus.Idle => "idle",

@@ -1,6 +1,6 @@
-@using System.Text.RegularExpressions
 @using BlazorChat.Shared.Interfaces
 @using BlazorChat.Client.Features.Servers.ViewModels
+@implements IDisposable
 
 <div class="channel-item d-flex align-center @ViewModel.GetChannelClass(Channel.Id)" @onclick="() => NavigateToChannel(Channel.Id)">
     <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-2" />
@@ -34,29 +34,24 @@
     [Parameter] public EventCallback<ISidebarItem> OnDelete { get; set; }
     [Inject]  protected NavigationManager NavManager { get; set; } = null!;
 
-    protected override void OnInitialized() {
-        NavManager.LocationChanged += OnLocationChanged;
-        UpdateActiveChannelFromUrl();
+    protected override void OnInitialized() 
+    {
+        ViewModel.StateChanged += OnStateChanged;
     }
     
     private void NavigateToChannel(int channelId)
     {
         NavManager.NavigateTo($"/chat/{channelId}");
-        
         ViewModel.SetActiveChannel(channelId);
     }
     
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    private void OnStateChanged()
     {
-        UpdateActiveChannelFromUrl();
+        InvokeAsync(StateHasChanged);
     }
-    
-    private void UpdateActiveChannelFromUrl()
+
+    public void Dispose()
     {
-        var match = Regex.Match(NavManager.Uri, @"/chat/(\d+)");
-        if (match.Success && int.TryParse(match.Groups[1].Value, out var channelId))
-        {
-            ViewModel.SetActiveChannel(channelId);
-        }
+        ViewModel.StateChanged -= OnStateChanged;
     }
 }

@@ -2,6 +2,9 @@
 @inject NavigationState NavState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppState AppState
+@using BlazorChat.Client.Core
 @using BlazorChat.Client.Features.Servers.Dialogs.AddServer
 @using BlazorChat.Client.Features.Servers.Services
 @implements IDisposable
@@ -10,7 +13,7 @@
     <div class="server-icons-list">
         <MudTooltip Text="Friends" Placement="Placement.Right">
             <div class="server-icon @(NavState.SelectedServer == null ? "active" : "")"
-                 @onclick="() => NavState.SelectServer(null)">
+                 @onclick="SelectFriendsAsync">
                 <MudIcon Icon="@Icons.Material.Filled.People" />
             </div>
         </MudTooltip>
@@ -21,7 +24,7 @@
         {
             <MudTooltip Text="@server.Name" Placement="Placement.Right">
                 <div class="server-icon @(NavState.SelectedServer?.Id == server.Id ? "active" : "")"
-                     @onclick="() => NavState.SelectServer(server)">
+                     @onclick="() => SelectServerAsync(server)">
                     @server.Name[0].ToString().ToUpper()
                 </div>
             </MudTooltip>
@@ -45,6 +48,30 @@
         
         ServerRepo.OnChanged += OnServersChanged;
         _servers = await ServerRepo.GetAllMyServersAsync();
+    }
+
+    private async Task SelectFriendsAsync()
+    {
+        NavState.SelectServer(null);
+
+        
+        var selection = AppState.GetLastSelectedFriend();
+        
+        if(selection == null)
+        {
+            NavigationManager.NavigateTo($"/chat/0");
+            return;
+        }
+        var lastChannelId = selection.ChannelId;
+    
+        NavigationManager.NavigateTo($"/chat/{lastChannelId}");
+    }
+
+    private async Task SelectServerAsync(ServerDto server)
+    {
+        NavState.SelectServer(server);
+        var channelId = AppState.GetLastChannelForServer(server.Id) ?? 0;
+        NavigationManager.NavigateTo($"/chat/{channelId}");
     }
 
     private async void OnServersChanged()

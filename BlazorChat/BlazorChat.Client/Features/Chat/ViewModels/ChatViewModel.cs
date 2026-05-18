@@ -45,13 +45,26 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
     {
         if (channelId == LoadedChannelId) return;
 
-        if (_hub?.State == HubConnectionState.Connected)
+        if (_hub?.State == HubConnectionState.Connected && LoadedChannelId > 0)
         {
-            if (LoadedChannelId > 0) await _hub.SendAsync("LeaveChannel", LoadedChannelId);
-            if (channelId > 0) await _hub.SendAsync("JoinChannel", channelId);
+            await _hub.SendAsync("LeaveChannel", LoadedChannelId);
         }
 
         LoadedChannelId = channelId;
+
+        if (channelId == 0)
+        {
+            Messages = [];
+            CurrentMessage = "";
+            OnChanged?.Invoke();
+            return;
+        }
+
+        if (_hub?.State == HubConnectionState.Connected)
+        {
+            await _hub.SendAsync("JoinChannel", channelId);
+        }
+
         var fetchedMessages = await apiService.GetMessagesAsync(channelId, CancellationToken.None);
         Messages = fetchedMessages.OrderByDescending(m => m.CreatedAt).ToList();
         OnChanged?.Invoke();
@@ -59,7 +72,7 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
 
     public async Task SendAsync()
     {
-        if (string.IsNullOrWhiteSpace(CurrentMessage) || IsSending) return;
+        if (string.IsNullOrWhiteSpace(CurrentMessage) || IsSending || LoadedChannelId == 0) return;
         IsSending = true;
         
         var success = await apiService.SendMessageAsync(CurrentMessage, LoadedChannelId);

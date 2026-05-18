@@ -1,4 +1,5 @@
 using BlazorChat.Client;
+using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Authentication;
 using BlazorChat.Client.Features.Authentication.ViewModels;
 using BlazorChat.Client.Features.Chat.Services;
@@ -57,7 +58,6 @@ builder.Services.AddScoped<IUserApiService, UserApiService>();
 builder.Services.AddScoped<IAuthApiService, AuthApiService>();
 builder.Services.AddScoped<IChatApiService, ChatApiService>();
 builder.Services.AddScoped<IServerApiService, ServerApiService>();
-builder.Services.AddScoped<SidebarViewModel>();
 builder.Services.AddScoped<IChannelsApiService, ChannelsApiService>();
 builder.Services.AddScoped<NavigationState>();
 builder.Services.AddScoped<TopBarViewModel>();
@@ -67,5 +67,6 @@ builder.Services.AddScoped<CreateServerViewModel>();
 builder.Services.AddScoped<IDirectMessageApiService, DirectMessageApiService>();
 builder.Services.AddTransient<CreateChannelViewModel>();
 builder.Services.AddTransient<CreateCategoryViewModel>();
+builder.Services.AddScoped<AppState>();
 
 await builder.Build().RunAsync();

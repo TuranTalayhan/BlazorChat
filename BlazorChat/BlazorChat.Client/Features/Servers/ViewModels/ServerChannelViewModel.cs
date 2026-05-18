@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
@@ -10,7 +11,10 @@ public class ServerChannelsViewModel : IDisposable
 {
     private readonly IChannelsApiService _apiService;
     private readonly NavigationManager _nav;
+    private readonly AppState _appState;
+    
     public event Action? StateChanged;
+    
     public List<ChannelDto> Channels { get; private set; } = [];
     private List<CategoryDto> Categories { get; set; } = [];
     public bool IsLoading { get; private set; }
@@ -21,20 +25,28 @@ public class ServerChannelsViewModel : IDisposable
     public int? EditingCategoryId { get; private set; }
     public string EditName { get; set; } = string.Empty;
 
-    public ServerChannelsViewModel(IChannelsApiService apiService, NavigationManager nav)
+    public ServerChannelsViewModel(IChannelsApiService apiService, NavigationManager nav, AppState appState)
     {
         _apiService = apiService;
         _nav = nav;
+        _appState = appState;
         _nav.LocationChanged += OnLocationChanged;
     }
 
     public async Task InitializeAsync(int serverId)
     {
-        UpdateActiveChannel();
         if (_currentServerId != serverId)
         {
             _currentServerId = serverId;
             await LoadChannels(serverId);
+        }
+
+        UpdateActiveChannel();
+
+        if (ActiveChannelId == 0)
+        {
+            ActiveChannelId = _appState.GetLastChannelForServer(serverId) ?? 0;
+            StateChanged?.Invoke();
         }
     }
 
@@ -42,23 +54,33 @@ public class ServerChannelsViewModel : IDisposable
     {
         IsLoading = true;
         StateChanged?.Invoke();
+        
         Channels = await _apiService.GetChannelsAsync(serverId);
         Categories = await _apiService.GetCategoriesAsync(serverId);
+        
         IsLoading = false;
         StateChanged?.Invoke();
     }
     
-    public void SetActiveChannel(int id)
+    public void SetActiveChannel(int channelId)
     {
-        if (ActiveChannelId == id) return;
-        ActiveChannelId = id;
+        if (ActiveChannelId == channelId) return;
+        
+        ActiveChannelId = channelId;
+
+        _appState.SaveServerChannel(_currentServerId, channelId);
+
         StateChanged?.Invoke();
     }
 
     private void UpdateActiveChannel()
     {
         var match = Regex.Match(_nav.Uri, @"/chat/(\d+)");
-        ActiveChannelId = match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        var newActiveId = match.Success ? int.Parse(match.Groups[1].Value) : 0;
+
+        if (ActiveChannelId == newActiveId) return;
+        ActiveChannelId = newActiveId;
+        StateChanged?.Invoke();
     }
 
     public void ToggleCategory(int categoryId)
@@ -88,11 +110,11 @@ public class ServerChannelsViewModel : IDisposable
     public void AddChannel(ChannelDto channel)
     {
         Channels.Add(channel);
-
         if (channel.Category != null && Categories.All(c => c.Id != channel.Id))
         {
             Categories.Add(channel.Category);
         }
+        StateChanged?.Invoke();
     }
     
     public void AddCategory(CategoryDto newCategory)
@@ -124,7 +146,7 @@ public class ServerChannelsViewModel : IDisposable
         channel.Name = EditName; 
         EditingChannelId = null;
         StateChanged?.Invoke();
-        Console.WriteLine($"Saving channel name: {channel.Name}");
+        
         await _apiService.UpdateChannelAsync(channel.Id, new UpdateChannelDto { Name = EditName });
     }
 
@@ -135,7 +157,7 @@ public class ServerChannelsViewModel : IDisposable
         category.Name = EditName; 
         EditingCategoryId = null;
         StateChanged?.Invoke();
-        Console.WriteLine($"Saving category name: {category.Name}");
+        
         await _apiService.UpdateCategoryAsync(category.Id, new UpdateCategoryDto { Name = EditName });
     }
 
@@ -143,12 +165,14 @@ public class ServerChannelsViewModel : IDisposable
     {
         _apiService.DeleteChannelAsync(_currentServerId, channelId);
         Channels.RemoveAll(c => c.Id == channelId);
+        StateChanged?.Invoke();
     }
 
     public void DeleteCategory(int categoryId)
     {
         _apiService.DeleteCategoryAsync(_currentServerId, categoryId);
         Categories.RemoveAll(c => c.Id == categoryId);
+        StateChanged?.Invoke();
     }
 
     public void Dispose() => _nav.LocationChanged -= OnLocationChanged;

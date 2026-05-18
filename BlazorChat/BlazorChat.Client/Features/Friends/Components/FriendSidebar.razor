@@ -1,5 +1,4 @@
 @inject FriendsSidebarViewModel ViewModel
-@using BlazorChat.Client.Features.Friends
 @using BlazorChat.Client.Features.Friends.ViewModels
 @implements IDisposable
 
@@ -26,7 +25,7 @@
              @onclick="@(() => ViewModel.OpenChatWithFriend(friend.FriendId))">
             <div class="avatar">
                 <span>@friend.Username.ToUpper()[0]</span>
-                <div class="status @ViewModel.GetStatusClass(friend.Status)"></div>
+                <div class="status @FriendsSidebarViewModel.GetStatusClass(friend.Status)"></div>
             </div>
             <span class="friend-name">@friend.Username</span>
         </div>
@@ -46,6 +45,5 @@
     public void Dispose()
     {
         ViewModel.OnStateChanged -= StateHasChanged;
-        ViewModel.Dispose();
     }
 }
