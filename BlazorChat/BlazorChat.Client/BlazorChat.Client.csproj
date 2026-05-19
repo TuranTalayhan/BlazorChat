@@ -26,12 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="Features\Authentication\Login.razor" />
-    <AdditionalFiles Include="Features\Authentication\Logout.razor" />
-    <AdditionalFiles Include="Features\Authentication\Register.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
     <_ContentIncludedByDefault Remove="Components\ChatArea\ChatFeed.razor" />
     <_ContentIncludedByDefault Remove="Components\ChatArea\MessageBubble.razor" />
     <_ContentIncludedByDefault Remove="Components\ChatArea\MessageInputBox.razor" />
