@@ -69,5 +69,6 @@ builder.Services.AddScoped<AppState>();
 builder.Services.AddScoped<IUserHubService, UserHubService>();
 builder.Services.AddScoped<IChatHubService, ChatHubService>();
 builder.Services.AddScoped<IGlobalNotificationService, GlobalNotificationService>();
+builder.Services.AddScoped<ICustomStateUpdater>(sp => sp.GetRequiredService<ChatAuthStateProvider>());
 
 await builder.Build().RunAsync();

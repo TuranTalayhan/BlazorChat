@@ -69,7 +69,6 @@ public class UserHub : Hub<IUserClient>
         await base.OnDisconnectedAsync(exception);
     }   
     
-    /// <summary>Broadcasts a user's status change (Online, Idle, DND) to all clients.</summary>
     public async Task NotifyStatusChange(ReceiveUserStatusDto statusDto)
     {
         await Clients.All.UserStatusChanged(statusDto);

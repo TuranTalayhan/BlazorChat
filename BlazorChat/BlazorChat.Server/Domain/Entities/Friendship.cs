@@ -9,15 +9,14 @@ public enum FriendshipStatus
 
 public class Friendship
 {
-    // Ensure these match the 'int' type in your User class
-    public int RequesterId { get; set; } 
-    public User Requester { get; set; } = null!;
+    public int RequesterId { get; init; } 
+    public User Requester { get; init; } = null!;
 
-    public int ReceiverId { get; set; }
-    public User Receiver { get; set; } = null!;
+    public int ReceiverId { get; init; }
+    public User Receiver { get; init; } = null!;
 
     public FriendshipStatus Status { get; set; } = FriendshipStatus.Pending;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     
     public void Accept()
     {

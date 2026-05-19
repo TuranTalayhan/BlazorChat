@@ -1,9 +1,8 @@
 @page "/"
-@using BlazorChat.Client.Features.Authentication.Layouts
 @using BlazorChat.Client.Features.Authentication.ViewModels
-@using BlazorChat.Client.ViewModels
-@layout AuthLayout
 @inject LoginViewModel ViewModel
+@inject NavigationManager Nav
+@implements IDisposable
 
 <EditForm Model="@ViewModel.Model" OnValidSubmit="ViewModel.LoginUserAsync">
     <DataAnnotationsValidator />
@@ -59,6 +58,18 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
+        ViewModel.OnLoginSuccess += HandleLoginSuccess;
+        
         await ViewModel.CheckUserStatus();
+    }
+
+    private void HandleLoginSuccess()
+    {
+        Nav.NavigateTo("/chat");
+    }
+
+    public void Dispose()
+    {
+        ViewModel.OnLoginSuccess -= HandleLoginSuccess;
     }
 }

@@ -6,6 +6,18 @@ namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
 
 public class CategoryRepository(AppDbContext db) : ICategoryRepository
 {
+    public async Task<ChannelCategory?> GetByIdAndServerAsync(int categoryId, int serverId, CancellationToken ct)
+    {
+        return await db.ChannelCategories
+            .FirstOrDefaultAsync(c => c.Id == categoryId && c.ServerId == serverId, ct);
+    }
+
+    public async Task<ChannelCategory?> GetByNameAndServerAsync(string name, int serverId, CancellationToken ct)
+    {
+        var normalized = name.Trim().ToLower();
+        return await db.ChannelCategories
+            .FirstOrDefaultAsync(c => c.ServerId == serverId && c.Name.ToLower() == normalized, ct);
+    }
     public async Task<ChannelCategory?> GetByIdAsync(int categoryId, CancellationToken ct)
     {
         return await db.ChannelCategories.FirstOrDefaultAsync(c => c.Id == categoryId, ct);

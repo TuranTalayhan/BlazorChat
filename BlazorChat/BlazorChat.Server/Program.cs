@@ -88,6 +88,7 @@ public class Program
         builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
         builder.Services.AddScoped<IServerRepository, ServerRepository>();
+        builder.Services.AddScoped<IChatPresenceTracker, ChatPresenceTracker>();
         builder.Services.AddMediator(options => 
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;

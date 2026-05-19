@@ -4,6 +4,8 @@ namespace BlazorChat.Server.Application.Interfaces.Repositories;
 
 public interface ICategoryRepository
 {
+    Task<ChannelCategory?> GetByIdAndServerAsync(int categoryId, int serverId, CancellationToken ct);
+    Task<ChannelCategory?> GetByNameAndServerAsync(string name, int serverId, CancellationToken ct);
     Task<ChannelCategory?> GetByIdAsync(int categoryId, CancellationToken ct);
     void Remove(ChannelCategory category);
     Task<ChannelCategory?> GetByIdWithChannelsAsync(int categoryId, CancellationToken ct);

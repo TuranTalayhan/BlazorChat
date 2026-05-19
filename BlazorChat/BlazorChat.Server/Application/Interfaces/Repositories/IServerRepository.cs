@@ -6,6 +6,7 @@ namespace BlazorChat.Server.Application.Interfaces.Repositories;
 
 public interface IServerRepository
 {
+    Task<ServerRole?> GetUserRoleInServerAsync(int serverId, int userId, CancellationToken ct);
     Task<List<ChannelDto>> GetChannelsByServerIdAsync(int serverId, CancellationToken ct);
     Task<bool> IsMemberAsync(int serverId, int userId, CancellationToken ct);
     Task<List<CategoryDto>> GetCategoriesByServerIdAsync(int serverId, CancellationToken ct);

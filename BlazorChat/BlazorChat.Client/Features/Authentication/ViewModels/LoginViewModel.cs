@@ -1,19 +1,22 @@
 using BlazorChat.Shared.DTO;
-using Microsoft.AspNetCore.Components;
 
 namespace BlazorChat.Client.Features.Authentication.ViewModels;
 
-public class LoginViewModel(IAuthApiService apiService, NavigationManager nav, ChatAuthStateProvider auth)
+public class LoginViewModel(IAuthApiService apiService, ICustomStateUpdater auth)
 {
-    public LoginDto Model { get; set; } = new();
+    public LoginDto Model { get; } = new();
     public string ErrorMessage { get; private set; } = "";
-    public bool IsLoading { get; set; }
+    public bool IsLoading { get; private set; }
+
+    public event Action? OnLoginSuccess;
 
     public async Task CheckUserStatus()
     {
         var state = await auth.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
-            nav.NavigateTo("/chat");
+        {
+            OnLoginSuccess?.Invoke();
+        }
     }
 
     public async Task LoginUserAsync()
@@ -32,7 +35,7 @@ public class LoginViewModel(IAuthApiService apiService, NavigationManager nav, C
 
         auth.NotifyUserAuthenticated(meDto);
         
-        nav.NavigateTo("/chat");
+        OnLoginSuccess?.Invoke();
 
         IsLoading = false;
     }

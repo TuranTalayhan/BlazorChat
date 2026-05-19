@@ -31,10 +31,8 @@ public class ChatHub(IMediator mediator) : Hub<IChatClient>
         var userId = GetUserId();
         if (userId <= 0 || channelId <= 0) return;
 
-        // Join the physical SignalR Group for live websocket streaming
         await Groups.AddToGroupAsync(Context.ConnectionId, $"channel:{channelId}");
 
-        // Track that this User ID is actively viewing this specific channel
         ActiveChannelUsers.AddOrUpdate(channelId, 
             _ => [userId], 
             (_, set) => { lock(set) { set.Add(userId); } return set; });
@@ -47,7 +45,6 @@ public class ChatHub(IMediator mediator) : Hub<IChatClient>
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"channel:{channelId}");
 
-        // Remove from memory tracking
         if (ActiveChannelUsers.TryGetValue(channelId, out var set))
         {
             lock (set) { set.Remove(userId); }

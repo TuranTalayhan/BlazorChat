@@ -1,17 +1,20 @@
 using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
-using BlazorChat.Server.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Infrastructure.Services;
 
-public class ServerAuthorizationService(AppDbContext db) : IServerAuthorizationService
+public class ServerAuthorizationService(IServerRepository serverRepository) : IServerAuthorizationService
 {
     public async Task<bool> IsAdminOrOwnerAsync(int? serverId, int userId, CancellationToken ct)
     {
-        return await db.ServerMemberships
-            .AnyAsync(sm => sm.ServerId == serverId 
-                            && sm.UserId == userId 
-                            && sm.Role != ServerRole.Member, ct);
+        if (serverId is not > 0)
+        {
+            return false;
+        }
+
+        var userRole = await serverRepository.GetUserRoleInServerAsync(serverId.Value, userId, ct);
+
+        return userRole is ServerRole.Admin or ServerRole.Owner;
     }
 }

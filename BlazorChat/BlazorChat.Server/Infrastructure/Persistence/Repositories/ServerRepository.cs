@@ -8,6 +8,14 @@ namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
 
 public class ServerRepository(AppDbContext db) : IServerRepository
 {
+    public async Task<ServerRole?> GetUserRoleInServerAsync(int serverId, int userId, CancellationToken ct)
+    {
+        return await db.ServerMemberships
+            .AsNoTracking()
+            .Where(sm => sm.ServerId == serverId && sm.UserId == userId)
+            .Select(sm => sm.Role)
+            .FirstOrDefaultAsync(ct);
+    }
     public async Task<List<ChannelDto>> GetChannelsByServerIdAsync(int serverId, CancellationToken ct)
     {
         return await db.Channels

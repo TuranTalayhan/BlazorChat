@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 
 namespace BlazorChat.Client.Features.Authentication;
 
-public class ChatAuthStateProvider(HttpClient http) : AuthenticationStateProvider
+public class ChatAuthStateProvider(HttpClient http) : AuthenticationStateProvider, ICustomStateUpdater
 {
     private ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
 
