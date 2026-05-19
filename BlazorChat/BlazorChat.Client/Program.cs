@@ -16,6 +16,7 @@ using BlazorChat.Client.Features.User;
 using BlazorChat.Client.Features.User.Services;
 using BlazorChat.Client.Services;
 using BlazorChat.Client.ViewModels;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -28,22 +29,26 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Register the custom handler
 builder.Services.AddTransient<CookieHandler>();
 
-// Register the HttpClient using the custom handler
 builder.Services.AddScoped(sp => 
 {
     var handler = sp.GetRequiredService<CookieHandler>();
     handler.InnerHandler = new HttpClientHandler();
     
+    var navigationManager = sp.GetRequiredService<NavigationManager>();
+    var baseAddress = navigationManager.BaseUri.Contains("localhost:8080") 
+        ? "http://localhost:8080/" 
+        : "http://localhost:5000/";
+    
     return new HttpClient(handler) 
     { 
-        BaseAddress = new Uri("http://localhost:7138") 
+        BaseAddress = new Uri(baseAddress) 
     };
 });
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddMudServices();
 
-
+builder.Services.AddSingleton<ISignalRConnectionFactory, SignalRConnectionFactory>();
 builder.Services.AddScoped<LoginViewModel>();
 builder.Services.AddScoped<ChatViewModel>();
 builder.Services.AddScoped<ChatAuthStateProvider>();
@@ -71,5 +76,6 @@ builder.Services.AddScoped<IChatHubService, ChatHubService>();
 builder.Services.AddScoped<IGlobalNotificationService, GlobalNotificationService>();
 builder.Services.AddScoped<ICustomStateUpdater>(sp => sp.GetRequiredService<ChatAuthStateProvider>());
 builder.Services.AddTransient<ServerMembersViewModel>();
+
 
 await builder.Build().RunAsync();

@@ -1,3 +1,4 @@
+using BlazorChat.Client.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -14,7 +15,7 @@ public interface IChatHubService : IAsyncDisposable
     Task MarkAsReadAsync(int channelId, int lastMessageId);
 }
 
-public class ChatHubService : IChatHubService
+public class ChatHubService(ISignalRConnectionFactory connectionFactory) : IChatHubService
 {
     private HubConnection? _hubConnection;
     public event Action<MessageDto>? OnMessageReceived;
@@ -24,12 +25,7 @@ public class ChatHubService : IChatHubService
     {
         if (_hubConnection is not null) return;
 
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7138/hubs/chat", options =>
-            {
-                options.HttpMessageHandlerFactory = innerHandler => new CookieHandler { InnerHandler = innerHandler };
-            })
-            .Build();
+        _hubConnection = connectionFactory.CreateConnection("hubs/chat");
 
         _hubConnection.On<MessageDto>("ReceiveMessage", msg =>
         {

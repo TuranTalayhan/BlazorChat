@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:17
+    container_name: blazorchat-db
     environment:
       POSTGRES_DB: blazorchat
       POSTGRES_USER: postgres
@@ -9,6 +10,46 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d blazorchat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server-api:
+    image: blazorchat-server:latest
+    container_name: blazorchat-server-api
+    build:
+      context: .
+      dockerfile: BlazorChat/BlazorChat.Server/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development # Keeps your database seed rules running
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=blazorchat;Username=postgres;Password=example
+      - ClientOrigins=http://localhost:8080;http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  client-wasm:
+    image: blazorchat-client:latest
+    container_name: blazorchat-client-wasm
+    build:
+      context: .
+      dockerfile: BlazorChat/BlazorChat.Client/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - server-api
+    networks:
+      - chat-network
 
 volumes:
   pgdata:
+
+networks:
+  chat-network:
+    driver: bridge

@@ -1,4 +1,5 @@
 using BlazorChat.Client.Core;
+using BlazorChat.Client.Features.Chat.Services;
 using BlazorChat.Client.Features.DirectMessage;
 using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Shared.DTO;
@@ -19,6 +20,7 @@ public class FriendsSidebarViewModel : IDisposable
     private readonly IGlobalNotificationService _notifications;
     private readonly NavigationManager _navigationManager;
     private readonly AppState _appState;
+    private readonly IChatHubService _chatHubService;
 
     public event Action? OnStateChanged;
 
@@ -34,13 +36,14 @@ public class FriendsSidebarViewModel : IDisposable
         IDirectMessageApiService dmApiService,
         IGlobalNotificationService notifications,
         NavigationManager navigationManager, 
-        AppState appState)
+        AppState appState, IChatHubService chatHubService)
     {
         _friendshipApiService = friendshipApiService;
         _dmApiService = dmApiService;
         _notifications = notifications;
         _navigationManager = navigationManager;
         _appState = appState;
+        _chatHubService = chatHubService;
 
         _notifications.OnUserStatusChanged += HandleUserStatusChanged;
         _notifications.OnNewFriendAdded += HandleNewFriend;
@@ -55,9 +58,8 @@ public class FriendsSidebarViewModel : IDisposable
 
     public async Task InitializeAsync()
     {
-        // One clean API call fetches friends, status, DM channels, and unread metrics completely
         var summaryList = await _friendshipApiService.GetFriendsSummaryAsync();
-        
+    
         foreach (var item in summaryList)
         {
             Friends[item.FriendId] = item;
@@ -67,7 +69,12 @@ public class FriendsSidebarViewModel : IDisposable
                 ActiveFriendId = item.FriendId;
             }
 
-            if (item.HasUnreadMessages && item.FriendId != ActiveFriendId)
+            if (!item.HasUnreadMessages) continue;
+            if (item.FriendId == ActiveFriendId)
+            {
+                _ = _chatHubService.MarkAsReadAsync(item.ChannelId, 0);
+            }
+            else
             {
                 UnreadFriends.Add(item.FriendId);
             }
@@ -108,6 +115,15 @@ public class FriendsSidebarViewModel : IDisposable
         ActiveFriendId = friendId;
         UnreadFriends.Remove(friendId); 
         OnStateChanged?.Invoke();
+    
+        try 
+        {
+            await _chatHubService.MarkAsReadAsync(targetChannelId, 0);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to persist read status on backend: {ex.Message}");
+        }
     
         _appState.SetLastSelectedFriend(friendId, targetChannelId);
         _navigationManager.NavigateTo($"/chat/{targetChannelId}");

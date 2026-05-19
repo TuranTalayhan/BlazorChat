@@ -1,3 +1,4 @@
+using BlazorChat.Client.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -9,7 +10,7 @@ public interface IUserHubService : IAsyncDisposable
     Task ConnectAsync();
 }
 
-public class UserHubService : IUserHubService
+public class UserHubService(ISignalRConnectionFactory connectionFactory) : IUserHubService
 {
     private HubConnection? _hubConnection;
     public event Action<ReceiveUserStatusDto>? OnUserStatusChanged;
@@ -18,12 +19,7 @@ public class UserHubService : IUserHubService
     {
         if (_hubConnection is not null) return; 
 
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7138/hubs/user", options =>
-            {
-                options.HttpMessageHandlerFactory = innerHandler => new CookieHandler { InnerHandler = innerHandler }; 
-            })
-            .Build();
+        _hubConnection = connectionFactory.CreateConnection("hubs/user");
         
         _hubConnection.On<ReceiveUserStatusDto>("UserStatusChanged", userStatus =>
         {

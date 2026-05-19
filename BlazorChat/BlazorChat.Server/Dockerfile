@@ -1,33 +1,21 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# 1. Copy the .csproj files for BOTH projects to restore dependencies
-# This is the secret sauce for Docker build caching
-COPY ["BlazorChat/BlazorChat.Server/BlazorChat.Server.csproj", "BlazorChat.Server/"]
-COPY ["BlazorChat/BlazorChat.Shared/BlazorChat.Shared.csproj", "BlazorChat.Shared/"]
+COPY ["BlazorChat/BlazorChat.Server/BlazorChat.Server.csproj", "BlazorChat/BlazorChat.Server/"]
+COPY ["BlazorChat/BlazorChat.Shared/BlazorChat.Shared.csproj", "BlazorChat/BlazorChat.Shared/"]
+RUN dotnet restore "BlazorChat/BlazorChat.Server/BlazorChat.Server.csproj"
 
-# 2. Restore using the Server project (it will automatically restore Shared)
-RUN dotnet restore "BlazorChat.Server/BlazorChat.Server.csproj"
-
-# 3. Copy EVERYTHING else
 COPY . .
-
-# 4. Build from the Server directory
 WORKDIR "/src/BlazorChat/BlazorChat.Server"
-RUN dotnet publish "BlazorChat.Server.csproj" -c Release -o /app/publish
+RUN dotnet publish "BlazorChat.Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# Changed from 8.0 to 10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+EXPOSE 8080
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
 COPY --from=build /app/publish .
-
-# 5. Copy the entrypoint script from your host into the runtime image
-COPY BlazorChat/BlazorChat.Server/entrypoint.sh ./entrypoint.sh
-
-# 6. Ensure the script has Linux execution permissions
-RUN chmod +x ./entrypoint.sh
-
-ENV ASPNETCORE_URLS=http://+:7138
-EXPOSE 7138
-
-# 7. Reference the script in the current WORKDIR (/app)
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["dotnet", "BlazorChat.Server.dll"]

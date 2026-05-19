@@ -1,3 +1,4 @@
+using BlazorChat.Client.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -10,7 +11,7 @@ public interface IFriendHubService : IAsyncDisposable
     Task ConnectAsync();
 }
 
-public class FriendHubService : IFriendHubService
+public class FriendHubService(ISignalRConnectionFactory connectionFactory) : IFriendHubService
 {
     private HubConnection? _hubConnection;
     public event Action<FriendshipDto>? OnNewFriendAdded;
@@ -19,13 +20,7 @@ public class FriendHubService : IFriendHubService
     public async Task ConnectAsync()
     {
         if (_hubConnection is not null) return; 
-
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7138/hubs/friend", options => 
-            {
-                options.HttpMessageHandlerFactory = innerHandler => new CookieHandler { InnerHandler = innerHandler }; 
-            })
-            .Build();
+        _hubConnection = connectionFactory.CreateConnection("hubs/friend");
         
         _hubConnection.On<FriendshipDto>("ReceiveNewFriend", friend =>
         {
