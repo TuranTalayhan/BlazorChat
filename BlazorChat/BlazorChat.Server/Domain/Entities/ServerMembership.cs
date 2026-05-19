@@ -17,4 +17,6 @@ public class ServerMembership
 
     public ServerRole Role { get; init; } = ServerRole.Member;
     public DateTime JoinedAt { get; init; } = DateTime.UtcNow;
+    
+    public static ServerMembership CreateOwner(int userId) => new() { UserId = userId, Role = ServerRole.Owner };
 }

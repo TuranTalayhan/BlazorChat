@@ -1,27 +1,33 @@
 using BlazorChat.Server.Application.Features.ChannelCategories.Commands;
-using BlazorChat.Server.Infrastructure.Persistence;
+using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.ChannelCategories.Handlers;
 
-public class UpdateCategoryHandler(AppDbContext db) : ICommandHandler<UpdateCategoryCommand, CategoryResult>
+public class UpdateCategoryHandler(
+    ICategoryRepository categoryRepository,
+    IServerAuthorizationService authService) 
+    : ICommandHandler<UpdateCategoryCommand, CategoryResult>
 {
     public async ValueTask<CategoryResult> Handle(UpdateCategoryCommand request, CancellationToken ct)
     {
-        var category = await db.ChannelCategories
-            .Include(channelCategory => channelCategory.Server)
-            .FirstOrDefaultAsync(c => c.Id == request.CategoryId, ct);
-        
+        var category = await categoryRepository.GetByIdAsync(request.CategoryId, ct);
         if (category == null)
+        {
             return CategoryResult.Failure(CategoryError.NotFound, "Category not found.");
+        }
 
-        if (category.Server.OwnerId != request.UserId)
+        var isAuthorized = await authService.IsAdminOrOwnerAsync(category.ServerId, request.UserId, ct);
+        if (!isAuthorized)
+        {
             return CategoryResult.Failure(CategoryError.Forbidden, "You do not have permission.");
+        }
 
-        category.Name = request.Dto.Name;
+        category.Rename(request.Dto.Name);
+
+        await categoryRepository.SaveChangesAsync(ct);
         
-        await db.SaveChangesAsync(ct);
         return CategoryResult.Success();
     }
 }

@@ -26,7 +26,6 @@
     <Folder Include="Application\Common\" />
     <Folder Include="Domain\Exceptions\" />
     <Folder Include="Domain\Interfaces\" />
-    <Folder Include="Infrastructure\Identity\" />
   </ItemGroup>
 
 </Project>

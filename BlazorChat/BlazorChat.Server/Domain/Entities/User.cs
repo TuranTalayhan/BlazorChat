@@ -26,4 +26,18 @@ public class User
     public ICollection<Friendship> SentRequests { get; init; } = new List<Friendship>();
     public ICollection<Friendship> ReceivedRequests { get; init; } = new List<Friendship>();
     public ICollection<ServerMembership> ServerMemberships { get; init; } = new List<ServerMembership>();
+    
+    public static User Create(string username, string email, string password, Func<User, string, string> hashStrategy)
+    {
+        var user = new User
+        {
+            Username = username.Trim(),
+            Email = email.Trim().ToLower(),
+            Status = UserStatus.Online,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        user.PasswordHash = hashStrategy(user, password);
+        return user;
+    }
 }

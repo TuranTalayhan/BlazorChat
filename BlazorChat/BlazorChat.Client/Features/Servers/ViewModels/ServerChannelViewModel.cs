@@ -174,7 +174,14 @@ public class ServerChannelsViewModel : IDisposable
     public void DeleteCategory(int categoryId)
     {
         _apiService.DeleteCategoryAsync(_currentServerId, categoryId);
+
+        foreach (var channel in Channels.Where(c => c.Category != null && c.Category.Id == categoryId))
+        {
+            channel.Category = null; 
+        }
+
         Categories.RemoveAll(c => c.Id == categoryId);
+
         StateChanged?.Invoke();
     }
 

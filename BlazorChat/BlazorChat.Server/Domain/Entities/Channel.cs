@@ -66,4 +66,6 @@ public class Channel
             SortOrder = newSortOrder.Value;
         }
     }
+    
+    public void MoveToCategory(int? categoryId) => CategoryId = categoryId;
 }

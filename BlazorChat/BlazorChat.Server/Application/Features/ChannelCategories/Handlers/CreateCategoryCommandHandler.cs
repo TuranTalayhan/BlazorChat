@@ -1,47 +1,38 @@
 using BlazorChat.Server.Application.Features.ChannelCategories.Commands;
 using BlazorChat.Server.Application.Features.Servers;
+using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
-using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Shared.DTO;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.ChannelCategories.Handlers;
 
-public class CreateCategoryCommandHandler(AppDbContext db) 
+public class CreateCategoryCommandHandler(
+    ICategoryRepository categoryRepository,
+    IServerAuthorizationService authService) 
     : ICommandHandler<CreateCategoryCommand, ServerResult<CategoryDto>>
 {
     public async ValueTask<ServerResult<CategoryDto>> Handle(CreateCategoryCommand request, CancellationToken ct)
     {
-        var membership = await db.ServerMemberships
-            .FirstOrDefaultAsync(sm => sm.ServerId == request.ServerId && sm.UserId == request.CurrentUserId, ct);
-
-        if (membership == null || membership.Role == ServerRole.Member)
+        var isAuthorized = await authService.IsAdminOrOwnerAsync(request.ServerId, request.CurrentUserId, ct);
+        if (!isAuthorized)
+        {
             return new ServerResult<CategoryDto>(false, Error: ServerError.Forbidden);
+        }
 
-        var normalizedName = request.Name.Trim();
-
-        var categoryExists = await db.ChannelCategories
-            .AnyAsync(c => c.ServerId == request.ServerId && c.Name.ToLower() == normalizedName.ToLower(), ct);
-
+        var categoryExists = await categoryRepository.ExistsByNameAsync(request.ServerId, request.Name, ct);
         if (categoryExists)
         {
             return new ServerResult<CategoryDto>(false, Error: ServerError.BadRequest, ErrorMessage: "A category with this name already exists.");
         }
 
-        var maxSortOrder = await db.ChannelCategories
-            .Where(c => c.ServerId == request.ServerId)
-            .MaxAsync(c => (int?)c.SortOrder, ct) ?? -1;
+        var nextSortOrder = await categoryRepository.GetNextSortOrderAsync(request.ServerId, ct);
 
-        var category = new ChannelCategory
-        {
-            Name = normalizedName,
-            ServerId = request.ServerId,
-            SortOrder = maxSortOrder + 1
-        };
+        var category = ChannelCategory.Create(request.Name, request.ServerId, nextSortOrder);
 
-        db.ChannelCategories.Add(category);
-        await db.SaveChangesAsync(ct);
+        await categoryRepository.AddAsync(category, ct);
+        await categoryRepository.SaveChangesAsync(ct);
 
         var dto = new CategoryDto
         {

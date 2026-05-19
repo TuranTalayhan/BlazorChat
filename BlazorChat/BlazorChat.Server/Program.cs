@@ -2,6 +2,7 @@ using BlazorChat.Server.Application.Interfaces;
 using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Hubs;
+using BlazorChat.Server.Infrastructure.Identity;
 using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Server.Infrastructure.Persistence.Repositories;
 using BlazorChat.Server.Infrastructure.Services;
@@ -68,7 +69,6 @@ public class Program
         
         builder.Services.AddAuthorization();
         
-        // Add services to the container.
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
         builder.Services.AddControllers();
@@ -84,11 +84,14 @@ public class Program
         builder.Services.AddScoped<ICategoryManager, CategoryManager>();
         builder.Services.AddScoped<IServerAuthorizationService, ServerAuthorizationService>();
         builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+        builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+        builder.Services.AddScoped<IServerRepository, ServerRepository>();
         builder.Services.AddMediator(options => 
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;
         });
-        
 
         var app = builder.Build();
 
