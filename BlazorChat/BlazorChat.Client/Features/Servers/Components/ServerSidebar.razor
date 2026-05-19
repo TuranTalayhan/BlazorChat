@@ -61,6 +61,7 @@
 {
     [Inject] protected ServerChannelsViewModel ViewModel { get; set; } = null!;
     [Inject] protected IDialogService DialogService { get; set; } = null!;
+    [Inject] protected NavigationState NavState { get; set; } = null!;
 
     [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
 
@@ -70,6 +71,7 @@
     protected override void OnInitialized()
     {
         ViewModel.StateChanged += OnViewModelStateChanged;
+        NavState.OnChanged += OnViewModelStateChanged;
     }
     
     protected async Task OpenInviteDialog()
@@ -142,6 +144,7 @@
     public void Dispose()
     {
         ViewModel.StateChanged -= OnViewModelStateChanged;
+        NavState.OnChanged -= OnViewModelStateChanged;
         ViewModel.Dispose();
     }
 }

@@ -1,5 +1,6 @@
 @inject FriendsSidebarViewModel ViewModel
 @using BlazorChat.Client.Features.Friends.ViewModels
+@inject NavigationState NavState
 @implements IDisposable
 
 <div class="channel-sidebar-header">Friends</div>
@@ -21,9 +22,12 @@
 <div class="channel-list">
     @foreach (var friend in ViewModel.FilteredFriends)
     {
-        bool hasUnread = ViewModel.UnreadFriends.Contains(friend.FriendId);
+        var hasUnread = ViewModel.UnreadFriends.Contains(friend.FriendId);
         
-        <div class="friend-item @(ViewModel.ActiveFriendId == friend.FriendId ? "active" : "")" 
+        var isSelected = ViewModel.ActiveFriendId == friend.FriendId 
+                         || NavState.SelectedChannelId == friend.ChannelId;
+        
+        <div class="friend-item @(isSelected ? "active" : "")" 
              @onclick="@(() => ViewModel.OpenChatWithFriend(friend.FriendId))">
              
             <div class="avatar">
@@ -50,11 +54,13 @@
     protected override async Task OnInitializedAsync()
     {
         ViewModel.OnStateChanged += StateHasChanged;
+        NavState.OnChanged += StateHasChanged;
         await ViewModel.InitializeAsync();
     }
 
     public void Dispose()
     {
         ViewModel.OnStateChanged -= StateHasChanged;
+        NavState.OnChanged -= StateHasChanged;
     }
 }

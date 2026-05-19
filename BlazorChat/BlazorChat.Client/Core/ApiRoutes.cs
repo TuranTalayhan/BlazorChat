@@ -33,14 +33,10 @@ public static class ApiRoutes
 
 public class ApiResponse<T>
 {
-    public T? Data { get; set; }
-    public bool IsSuccess { get; set; }
-    public HttpStatusCode StatusCode { get; set; }
+    public bool IsSuccess { get; init; }
+    public T? Data { get; init; }
     public string? ErrorMessage { get; set; }
-    
-    public bool IsForbidden => StatusCode == HttpStatusCode.Forbidden;
-    public bool IsUnauthorized => StatusCode == HttpStatusCode.Unauthorized;
-    public bool IsNotFound => StatusCode == HttpStatusCode.NotFound;
+    public HttpStatusCode StatusCode { get; init; }
 }
 
 public class ErrorPayload 

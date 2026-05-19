@@ -18,6 +18,8 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
     public bool HasMoreMessages { get; private set; } = true;
     private const int ChunkSize = 50;
 
+    public string ErrorMessage { get; private set; } = string.Empty;
+
     public event Action? OnChanged;
 
     public async Task InitializeAsync()
@@ -45,7 +47,7 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
 
     public async Task LoadChannelAsync(int channelId)
     {
-        if(channelId == 0) return;
+        if (channelId == 0) return;
         if (channelId == LoadedChannelId) return;
 
         if (LoadedChannelId > 0)
@@ -56,18 +58,27 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
         LoadedChannelId = channelId;
         Messages = [];
         HasMoreMessages = true;
+        ErrorMessage = string.Empty; // Reset errors when switching rooms
+        OnChanged?.Invoke();
 
         await chatHubService.JoinChannelAsync(channelId);
 
-        var fetchedMessages = await apiService.GetMessagesAsync(channelId, ChunkSize, null);
+        var result = await apiService.GetMessagesAsync(channelId, ChunkSize, null);
     
-        if (fetchedMessages.Count < ChunkSize)
+        if (result.IsSuccess && result.Data != null)
         {
+            if (result.Data.Count < ChunkSize)
+            {
+                HasMoreMessages = false;
+            }
+            Messages = result.Data; 
+        }
+        else
+        {
+            ErrorMessage = result.ErrorMessage ?? "Could not retrieve message logs.";
             HasMoreMessages = false;
         }
         
-        Messages = fetchedMessages; 
-    
         OnChanged?.Invoke();
     }
 
@@ -82,14 +93,21 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
         DateTime? cursorTime = oldestMessage?.CreatedAt;
         int? cursorId = oldestMessage?.Id;
 
-        var fetchedMessages = await apiService.GetMessagesAsync(LoadedChannelId, ChunkSize, cursorTime, cursorId);
+        var result = await apiService.GetMessagesAsync(LoadedChannelId, ChunkSize, cursorTime, cursorId);
 
-        if (fetchedMessages.Count < ChunkSize)
+        if (result.IsSuccess && result.Data != null)
         {
-            HasMoreMessages = false; 
+            if (result.Data.Count < ChunkSize)
+            {
+                HasMoreMessages = false; 
+            }
+            Messages.AddRange(result.Data);
         }
-
-        Messages.AddRange(fetchedMessages);
+        else
+        {
+            ErrorMessage = result.ErrorMessage ?? "Could not load older history chunks.";
+            HasMoreMessages = false;
+        }
 
         IsLoadingMore = false;
         OnChanged?.Invoke();

@@ -1,11 +1,13 @@
+using System.Net;
 using System.Net.Http.Json;
+using BlazorChat.Client.Core;
 using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Client.Features.Chat.Services;
 
 public interface IChatApiService
 {
-    public Task<List<MessageDto>> GetMessagesAsync(int channelId, int count, DateTime? before = null,
+    Task<ApiResponse<List<MessageDto>>> GetMessagesAsync(int channelId, int count, DateTime? before = null,
         int? cursorId = null, CancellationToken ct = default);
     Task<bool> SendMessageAsync(string content, int channelId);
     Task<List<ChannelUnreadStatusDto>> GetUnreadStatusesAsync(CancellationToken ct = default);
@@ -13,21 +15,68 @@ public interface IChatApiService
 
 public class ChatApiService(HttpClient http) : IChatApiService
 {
-    public async Task<List<MessageDto>> GetMessagesAsync(int channelId, int count, DateTime? before = null, int? cursorId = null, CancellationToken ct = default)
+    public async Task<ApiResponse<List<MessageDto>>> GetMessagesAsync(int channelId, int count, DateTime? before = null, int? cursorId = null, CancellationToken ct = default)
     {
-        var url = $"api/messages/{channelId}?count={count}";
+        // 1. Build the base query segment safely
+        var queryParams = new List<string> { $"count={count}" };
         
         if (before.HasValue)
         {
-            url += $"&before={Uri.EscapeDataString(before.Value.ToString("o"))}";
+            queryParams.Add($"before={Uri.EscapeDataString(before.Value.ToString("o"))}");
         }
 
         if (cursorId.HasValue)
         {
-            url += $"&messageId={cursorId.Value}";
+            queryParams.Add($"messageId={cursorId.Value}");
         }
 
-        return await http.GetFromJsonAsync<List<MessageDto>>(url, ct) ?? [];
+        var url = $"api/messages/{channelId}?{string.Join("&", queryParams)}";
+
+        try
+        {
+            // 2. Use GetAsync to intercept the raw status payload before parsing JSON
+            var response = await http.GetAsync(url, ct);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var messages = await response.Content.ReadFromJsonAsync<List<MessageDto>>(cancellationToken: ct) ?? [];
+                return new ApiResponse<List<MessageDto>>
+                {
+                    IsSuccess = true,
+                    Data = messages,
+                    StatusCode = response.StatusCode
+                };
+            }
+
+            // 3. Gracefully maps failures instead of letting EnsureSuccessStatusCode throw exceptions
+            var apiResponse = new ApiResponse<List<MessageDto>>
+            {
+                IsSuccess = false,
+                Data = [],
+                StatusCode = response.StatusCode
+            };
+
+            apiResponse.ErrorMessage = response.StatusCode switch
+            {
+                HttpStatusCode.Unauthorized => "Your active session has expired. Please log back in.",
+                HttpStatusCode.Forbidden => "Access denied. You do not belong to the server hosting this channel.",
+                HttpStatusCode.NotFound => "The selected channel or direct message thread could not be found.",
+                _ => $"Failed to retrieve chat messages (Error: {(int)response.StatusCode})."
+            };
+
+            return apiResponse;
+        }
+        catch (Exception ex)
+        {
+            // Catches catastrophic network exceptions (like server down/offline) safely
+            return new ApiResponse<List<MessageDto>>
+            {
+                IsSuccess = false,
+                Data = [],
+                StatusCode = HttpStatusCode.InternalServerError,
+                ErrorMessage = "A network error occurred. Please check your internet connection."
+            };
+        }
     }
 
     public async Task<bool> SendMessageAsync(string content, int channelId)
