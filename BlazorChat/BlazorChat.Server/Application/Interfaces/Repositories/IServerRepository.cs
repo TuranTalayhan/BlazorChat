@@ -7,6 +7,7 @@ namespace BlazorChat.Server.Application.Interfaces.Repositories;
 
 public interface IServerRepository
 {
+    Task<List<UserDto>> GetMembersByServerIdAsync(int serverId, CancellationToken ct);
     Task AddInviteAsync(ServerInvite invite, CancellationToken ct);
     Task<ServerInvite?> GetInviteWithServerByCodeAsync(string code, CancellationToken ct);
     Task AddMembershipAsync(ServerMembership membership, CancellationToken ct);

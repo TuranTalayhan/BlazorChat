@@ -9,6 +9,24 @@ namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
 
 public class ServerRepository(AppDbContext db) : IServerRepository
 {
+    public async Task<List<UserDto>> GetMembersByServerIdAsync(int serverId, CancellationToken ct)
+    {
+        return await db.ServerMemberships
+            .AsNoTracking()
+            .Where(sm => sm.ServerId == serverId)
+            .OrderByDescending(sm => sm.Role)
+            .ThenBy(sm => sm.User.Username) 
+            .Select(sm => new UserDto
+            {
+                Id = sm.User.Id,
+                Username = sm.User.Username,
+                AvatarUrl = sm.User.AvatarUrl,
+                Status = sm.User.Status,
+                Role = sm.Role
+            })
+            .ToListAsync(ct);
+    }
+    
     public async Task<ServerRole?> GetUserRoleInServerAsync(int serverId, int userId, CancellationToken ct)
     {
         return await db.ServerMemberships
