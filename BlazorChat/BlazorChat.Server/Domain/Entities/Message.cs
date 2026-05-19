@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using BlazorChat.Shared.Constants;
 
-namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
+namespace BlazorChat.Server.Domain.Entities;
 
 public enum MessageType
 {

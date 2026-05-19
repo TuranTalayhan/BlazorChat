@@ -1,5 +1,4 @@
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using BlazorChat.Shared.DTO;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,7 +1,7 @@
 using BlazorChat.Server.Application.Features.Servers.Handlers;
 using BlazorChat.Server.Application.Features.Servers.Queries;
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

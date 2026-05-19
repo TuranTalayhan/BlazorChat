@@ -1,8 +1,9 @@
 using BlazorChat.Server.Application.Interfaces;
-using BlazorChat.Server.Context;
+using BlazorChat.Server.Application.Interfaces.Repositories;
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Hubs;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Server.Infrastructure.Persistence.Repositories;
 using BlazorChat.Server.Infrastructure.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -78,7 +79,11 @@ public class Program
         builder.Services.AddScoped<IFriendNotificationService, FriendNotificationService>();
         builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
         builder.Services.AddScoped<IChannelAuthorizationService, ChannelAuthorizationService>();
+        builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+        builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
         builder.Services.AddScoped<ICategoryManager, CategoryManager>();
+        builder.Services.AddScoped<IServerAuthorizationService, ServerAuthorizationService>();
+        builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         builder.Services.AddMediator(options => 
         {
             options.ServiceLifetime = ServiceLifetime.Scoped;

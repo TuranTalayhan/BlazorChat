@@ -1,44 +1,43 @@
 using BlazorChat.Server.Application.Features.Channels.Commands;
-using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Shared.DTO;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Channels.Handlers;
 
-public class UpdateChannelCommandHandler(AppDbContext db) : ICommandHandler<UpdateChannelCommand, ChannelResult<bool>>
+public class UpdateChannelCommandHandler(
+    IChannelRepository channelRepository, 
+    IServerAuthorizationService authService) 
+    : ICommandHandler<UpdateChannelCommand, ChannelResult<bool>>
 {
     public async ValueTask<ChannelResult<bool>> Handle(UpdateChannelCommand request, CancellationToken ct)
     {
-        var channel = await db.Channels
-            .FirstOrDefaultAsync(c => c.Id == request.ChannelId, ct);
-
+        var channel = await channelRepository.GetByIdAsync(request.ChannelId, ct);
         if (channel == null)
+        {
             return new ChannelResult<bool>(false, Error: ChannelError.NotFound);
+        }
 
         if (channel.Type == ChannelType.DirectMessage)
+        {
             return new ChannelResult<bool>(false, Error: ChannelError.BadRequest, ErrorMessage: "Cannot update a Direct Message.");
+        }
 
-        var hasPermission = await db.ServerMemberships
-            .AnyAsync(sm => sm.ServerId == channel.ServerId 
-                            && sm.UserId == request.CurrentUserId 
-                            && sm.Role != ServerRole.Member, ct);
-
+        var hasPermission = await authService.IsAdminOrOwnerAsync(channel.ServerId, request.CurrentUserId, ct);
         if (!hasPermission)
+        {
             return new ChannelResult<bool>(false, Error: ChannelError.Forbidden);
+        }
 
-        if (!string.IsNullOrWhiteSpace(request.Dto.Name))
-            channel.Name = request.Dto.Name.Trim().ToLower();
+        channel.UpdateSettings(
+            request.Dto.Name, 
+            request.Dto.CategoryId, 
+            request.Dto.SortOrder
+        );
 
-        if (request.Dto.CategoryId.HasValue)
-            channel.CategoryId = request.Dto.CategoryId.Value;
+        await channelRepository.SaveChangesAsync(ct);
 
-        if (request.Dto.SortOrder.HasValue)
-            channel.SortOrder = request.Dto.SortOrder.Value;
-
-        // 4. Save
-        await db.SaveChangesAsync(ct);
         return new ChannelResult<bool>(true, Data: true);
     }
 }

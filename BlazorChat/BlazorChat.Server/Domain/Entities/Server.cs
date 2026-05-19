@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
+namespace BlazorChat.Server.Domain.Entities;
 
 public class ChatServer
 {

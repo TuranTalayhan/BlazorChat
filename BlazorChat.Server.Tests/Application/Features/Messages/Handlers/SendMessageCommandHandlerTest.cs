@@ -2,7 +2,6 @@ using BlazorChat.Server.Application.Features.Messages.Commands;
 using BlazorChat.Server.Application.Features.Messages.Handlers;
 using BlazorChat.Server.Application.Interfaces;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using BlazorChat.Shared.DTO;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

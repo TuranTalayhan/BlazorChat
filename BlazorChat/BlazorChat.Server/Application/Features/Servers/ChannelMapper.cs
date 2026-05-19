@@ -1,4 +1,4 @@
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Server.Application.Features.Servers;

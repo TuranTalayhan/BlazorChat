@@ -1,47 +1,31 @@
 using BlazorChat.Server.Application.Features.Channels.Commands;
-using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
-using BlazorChat.Shared.DTO;
+using BlazorChat.Server.Application.Interfaces.Repositories;
+using BlazorChat.Server.Domain.Entities;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Channels.Handlers;
 
-public class OpenDmCommandHandler(AppDbContext db) : ICommandHandler<OpenDmCommand, ChannelResult<int>>
+public class OpenDmCommandHandler(IChannelRepository channelRepository) 
+    : ICommandHandler<OpenDmCommand, ChannelResult<int>>
 {
     public async ValueTask<ChannelResult<int>> Handle(OpenDmCommand request, CancellationToken ct)
     {
         if (request.CurrentUserId == request.FriendId)
             return new ChannelResult<int>(false, Error: ChannelError.BadRequest, ErrorMessage: "Cannot DM yourself.");
 
-        var existingDm = await db.Channels
-            .Where(c => c.Type == ChannelType.DirectMessage)
-            .FirstOrDefaultAsync(c => 
-                c.Members.Any(m => m.Id == request.CurrentUserId) && 
-                c.Members.Any(m => m.Id == request.FriendId), ct);
-
-        // If it exists, return 200 OK (IsNewChannel = false)
+        var existingDm = await channelRepository.GetDirectMessageByMembersAsync(request.CurrentUserId, request.FriendId, ct);
         if (existingDm != null)
             return new ChannelResult<int>(true, Data: existingDm.Id, IsNewChannel: false);
 
-        // 2. It doesn't exist, so fetch the users and create it
-        var currentUser = await db.Users.FindAsync([request.CurrentUserId], ct);
-        var friendUser = await db.Users.FindAsync([request.FriendId], ct);
-
-        if (currentUser == null || friendUser == null)
+        var usersExist = await channelRepository.UsersExistAsync(request.CurrentUserId, request.FriendId, ct);
+        if (!usersExist)
             return new ChannelResult<int>(false, Error: ChannelError.NotFound, ErrorMessage: "User not found.");
 
-        var newDm = new Channel
-        {
-            Type = ChannelType.DirectMessage,
-            CreatedAt = DateTime.UtcNow,
-            Members = new List<User> { currentUser, friendUser }
-        };
+        var newDm = Channel.CreateDirectMessage(request.CurrentUserId, request.FriendId);
 
-        db.Channels.Add(newDm);
-        await db.SaveChangesAsync(ct);
+        await channelRepository.AddAsync(newDm, ct);
+        await channelRepository.SaveChangesAsync(ct);
 
-        // Return 201 Created (IsNewChannel = true)
         return new ChannelResult<int>(true, Data: newDm.Id, IsNewChannel: true);
     }
 }

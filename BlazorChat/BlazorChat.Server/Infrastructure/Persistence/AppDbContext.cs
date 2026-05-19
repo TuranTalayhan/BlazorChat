@@ -1,4 +1,4 @@
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
+using BlazorChat.Server.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Infrastructure.Persistence;

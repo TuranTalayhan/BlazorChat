@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace BlazorChat.Server.Context;
+namespace BlazorChat.Server.Application.Interfaces;
 
 public interface IUserContext
 {

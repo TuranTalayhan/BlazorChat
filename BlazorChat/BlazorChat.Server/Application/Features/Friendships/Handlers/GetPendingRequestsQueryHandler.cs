@@ -1,6 +1,6 @@
 using BlazorChat.Server.Application.Features.Friendships.Queries;
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using BlazorChat.Shared.DTO;
 using Mediator;
 using Microsoft.EntityFrameworkCore;

@@ -1,5 +1,5 @@
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Infrastructure.Services;

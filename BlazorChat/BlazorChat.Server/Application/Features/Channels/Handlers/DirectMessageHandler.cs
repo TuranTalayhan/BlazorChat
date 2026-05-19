@@ -1,42 +1,41 @@
 using BlazorChat.Server.Application.Features.Channels.Commands;
-using BlazorChat.Server.Context;
-using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
-using BlazorChat.Shared.DTO;
+using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
+using BlazorChat.Server.Domain.Entities;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Channels.Handlers;
 
-public class GetOrCreateDmHandler(AppDbContext db, IUserContext userContext) 
-    : ICommandHandler<GetOrCreateDmCommand, int>
+public class GetOrCreateDmHandler(IChannelRepository channelRepository, IUserContext userContext) 
+    : ICommandHandler<GetOrCreateDmCommand, ChannelResult<int>>
 {
-    public async ValueTask<int> Handle(GetOrCreateDmCommand request, CancellationToken ct)
+    public async ValueTask<ChannelResult<int>> Handle(GetOrCreateDmCommand request, CancellationToken ct)
     {
         var currentUserId = userContext.UserId;
-        
-        var existingId = await db.Channels
-            .Where(c => c.Type == ChannelType.DirectMessage)
-            .Where(c => c.Members.Any(m => m.Id == currentUserId) && 
-                        c.Members.Any(m => m.Id == request.FriendId))
-            .Select(c => c.Id)
-            .FirstOrDefaultAsync(ct);
 
-        if (existingId > 0) return existingId;
-        
-        var currentUser = await db.Users.FirstAsync(u => u.Id == currentUserId, ct);
-        var friendUser = await db.Users.FirstOrDefaultAsync(u => u.Id == request.FriendId, ct)
-                         ?? throw new Exception("Friend not found");
-
-        var channel = new Channel
+        if (currentUserId == request.FriendId)
         {
-            Type = ChannelType.DirectMessage,
-            Members = new List<User> { currentUser, friendUser }
-        };
+            return new ChannelResult<int>(false, Error: ChannelError.BadRequest, ErrorMessage: "Cannot DM yourself.");
+        }
 
-        db.Channels.Add(channel);
-        await db.SaveChangesAsync(ct);
+        var existingId = await channelRepository.GetDirectMessageIdByMembersAsync(currentUserId, request.FriendId, ct);
+        if (existingId.HasValue)
+        {
+            return new ChannelResult<int>(true, Data: existingId.Value);
+        }
 
-        return channel.Id;
+        var (currentUser, friendUser) = await channelRepository.GetDmUsersAsync(currentUserId, request.FriendId, ct);
+        
+        if (currentUser == null || friendUser == null)
+        {
+            return new ChannelResult<int>(false, Error: ChannelError.NotFound, ErrorMessage: "User or friend profile could not be resolved.");
+        }
+
+        var channel = Channel.CreateDirectMessage(currentUser.Id, friendUser.Id);
+
+        await channelRepository.AddAsync(channel, ct);
+        await channelRepository.SaveChangesAsync(ct);
+
+        return new ChannelResult<int>(true, Data: channel.Id);
     }
 }

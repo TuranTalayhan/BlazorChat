@@ -1,6 +1,6 @@
 using BlazorChat.Server.Application.Features.Messages.Commands;
+using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Persistence;
-using BlazorChat.Server.Infrastructure.Persistence.Entities;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 

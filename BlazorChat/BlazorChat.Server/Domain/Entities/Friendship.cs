@@ -1,4 +1,4 @@
-namespace BlazorChat.Server.Infrastructure.Persistence.Entities;
+namespace BlazorChat.Server.Domain.Entities;
 
 public enum FriendshipStatus
 {
