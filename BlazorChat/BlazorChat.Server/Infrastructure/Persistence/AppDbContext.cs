@@ -127,5 +127,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany()
             .HasForeignKey(ucs => ucs.ChannelId)
             .OnDelete(DeleteBehavior.Cascade);
+        
+        modelBuilder.Entity<ServerInvite>()
+            .HasIndex(si => si.Code).IsUnique();
+
+        modelBuilder.Entity<ServerInvite>()
+            .HasOne(si => si.Server)
+            .WithMany()
+            .HasForeignKey(si => si.ServerId);
     }
 }

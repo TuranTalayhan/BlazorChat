@@ -1,11 +1,6 @@
-namespace BlazorChat.Server.Domain.Entities;
+using BlazorChat.Shared.Enums;
 
-public enum ServerRole
-{
-    Member,
-    Admin,
-    Owner
-}
+namespace BlazorChat.Server.Domain.Entities;
 
 public class ServerMembership
 {

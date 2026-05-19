@@ -2,6 +2,7 @@ using BlazorChat.Server.Application.Features.Servers;
 using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Server.Infrastructure.Persistence.Repositories;
+using BlazorChat.Shared.Enums;
 
 namespace BlazorChat.Tests.Server.Infrastructure.Persistence.Repositories;
 

@@ -11,14 +11,30 @@ public class ChatNotificationService(
     IChatPresenceTracker presenceTracker)
     : IChatNotificationService
 {
-    public async Task SendMessageToChannelAsync(int channelId, int recipientUserId, MessageDto message)
+    public async Task SendMessageToChannelAsync(
+        int channelId, 
+        int recipientUserId, 
+        MessageDto message, 
+        string? excludedConnectionId = null)
     {
-        await hubContext.Clients.Group($"channel:{channelId}").ReceiveMessage(message);
+        var groupName = $"channel:{channelId}";
+
+        if (!string.IsNullOrEmpty(excludedConnectionId))
+        {
+            // Broadcasts to the entire channel room, excluding the person who sent it
+            var excludedList = new List<string> { excludedConnectionId }.AsReadOnly();
+            await hubContext.Clients.GroupExcept(groupName, excludedList).ReceiveMessage(message);
+        }
+        else
+        {
+            // Fallback: if no connection id is passed, broadcast to everyone
+            await hubContext.Clients.Group(groupName).ReceiveMessage(message);
+        }
 
         if (recipientUserId > 0)
         {
             var isFriendActive = presenceTracker.IsUserActiveInChannel(channelId, recipientUserId);
-            
+        
             if (!isFriendActive)
             {
                 await hubContext.Clients.User(recipientUserId.ToString()).ReceiveMessage(message);

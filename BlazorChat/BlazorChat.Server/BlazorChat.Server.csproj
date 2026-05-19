@@ -23,7 +23,6 @@
     <ProjectReference Include="..\BlazorChat.Shared\BlazorChat.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Application\Common\" />
     <Folder Include="Domain\Exceptions\" />
     <Folder Include="Domain\Interfaces\" />
   </ItemGroup>

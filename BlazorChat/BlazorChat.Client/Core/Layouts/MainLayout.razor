@@ -15,8 +15,18 @@
             <ChannelSidebar />
 
             <main class="chat-area">
-                <TopChatBar/>
-                @Body
+                <TopBar/>
+                
+                <div class="chat-content-flex-wrapper">
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+                        @Body
+                    </div>
+
+                    @if (NavState.SelectedServer != null)
+                    {
+                        <ServerMembersSidebar />
+                    }
+                </div>
             </main>
         </div>
     </Authorized>

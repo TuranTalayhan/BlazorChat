@@ -5,12 +5,9 @@ using BlazorChat.Shared.DTO;
 
 namespace BlazorChat.Client.Features.Chat.ViewModels;
 
-public class ChatViewModel : IDisposable
+public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider auth, IChatHubService chatHubService)
+    : IDisposable
 {
-    private readonly IChatApiService _apiService;
-    private readonly ChatAuthStateProvider _auth;
-    private readonly IChatHubService _chatHubService;
-
     public List<MessageDto> Messages { get; set; } = [];
     public string CurrentMessage { get; set; } = "";
     public bool IsSending { get; set; }
@@ -23,32 +20,27 @@ public class ChatViewModel : IDisposable
 
     public event Action? OnChanged;
 
-    public ChatViewModel(IChatApiService apiService, ChatAuthStateProvider auth, IChatHubService chatHubService)
-    {
-        _apiService = apiService;
-        _auth = auth;
-        _chatHubService = chatHubService;
-
-        _chatHubService.OnMessageReceived += HandleIncomingMessage;
-    }
-
     public async Task InitializeAsync()
     {
-        var state = await _auth.GetAuthenticationStateAsync();
+        var state = await auth.GetAuthenticationStateAsync();
         int.TryParse(state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id);
         CurrentUserId = id;
+        
+        chatHubService.OnMessageReceived += HandleIncomingMessage;
 
-        await _chatHubService.ConnectAsync();
+        await chatHubService.ConnectAsync();
     }
 
     private void HandleIncomingMessage(MessageDto msg)
     {
         if (msg.ChannelId != LoadedChannelId) return;
         
+        if (Messages.Any(m => m.Id == msg.Id)) return;
+        
         Messages.Insert(0, msg);
         OnChanged?.Invoke();
         
-        _chatHubService.MarkAsReadAsync(msg.ChannelId, msg.Id);
+        chatHubService.MarkAsReadAsync(msg.ChannelId, msg.Id);
     }
 
     public async Task LoadChannelAsync(int channelId)
@@ -58,16 +50,16 @@ public class ChatViewModel : IDisposable
 
         if (LoadedChannelId > 0)
         {
-            await _chatHubService.LeaveChannelAsync(LoadedChannelId);
+            await chatHubService.LeaveChannelAsync(LoadedChannelId);
         }
 
         LoadedChannelId = channelId;
         Messages = [];
         HasMoreMessages = true;
 
-        await _chatHubService.JoinChannelAsync(channelId);
+        await chatHubService.JoinChannelAsync(channelId);
 
-        var fetchedMessages = await _apiService.GetMessagesAsync(channelId, ChunkSize, null);
+        var fetchedMessages = await apiService.GetMessagesAsync(channelId, ChunkSize, null);
     
         if (fetchedMessages.Count < ChunkSize)
         {
@@ -90,7 +82,7 @@ public class ChatViewModel : IDisposable
         DateTime? cursorTime = oldestMessage?.CreatedAt;
         int? cursorId = oldestMessage?.Id;
 
-        var fetchedMessages = await _apiService.GetMessagesAsync(LoadedChannelId, ChunkSize, cursorTime, cursorId);
+        var fetchedMessages = await apiService.GetMessagesAsync(LoadedChannelId, ChunkSize, cursorTime, cursorId);
 
         if (fetchedMessages.Count < ChunkSize)
         {
@@ -109,7 +101,7 @@ public class ChatViewModel : IDisposable
         
         IsSending = true;
         
-        var success = await _apiService.SendMessageAsync(CurrentMessage, LoadedChannelId);
+        var success = await apiService.SendMessageAsync(CurrentMessage, LoadedChannelId);
         if (success) CurrentMessage = "";
         
         IsSending = false;
@@ -118,6 +110,6 @@ public class ChatViewModel : IDisposable
 
     public void Dispose()
     {
-        _chatHubService.OnMessageReceived -= HandleIncomingMessage;
+        chatHubService.OnMessageReceived -= HandleIncomingMessage;
     }
 }

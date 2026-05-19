@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BlazorChat.Shared.Enums;
 
 namespace BlazorChat.Shared.DTO;
 
@@ -8,4 +9,5 @@ public class UserDto
     public required string Username { get; set; }
     public required string? AvatarUrl { get; set; }
     public UserStatus Status { get; set; }
+    public ServerRole Role { get; init; } = ServerRole.Member;
 }

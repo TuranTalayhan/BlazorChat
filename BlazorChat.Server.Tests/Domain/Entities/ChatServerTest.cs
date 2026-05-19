@@ -1,5 +1,6 @@
 using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 
 namespace BlazorChat.Tests.Server.Domain.Entities;
 

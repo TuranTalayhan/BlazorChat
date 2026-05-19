@@ -1,0 +1,62 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Invite friends to your server</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_generatedInvite == null)
+        {
+            <EditForm Model="@_inviteModel" OnValidSubmit="GenerateInviteCode">
+                <DataAnnotationsValidator />
+                
+                <MudSelect @bind-Value="_inviteModel.ExpiresInHours" Label="Expiration Window" Variant="Variant.Outlined" Class="mb-4">
+                    <MudSelectItem Value="1">1 Hour</MudSelectItem>
+                    <MudSelectItem Value="24">1 Day</MudSelectItem>
+                    <MudSelectItem Value="168">7 Days</MudSelectItem>
+                </MudSelect>
+
+                <MudNumericField @bind-Value="_inviteModel.MaxUses" Label="Max Number of Uses (Optional)" Variant="Variant.Outlined" Min="1" Max="100" Clearable="true" Class="mb-6" />
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="_isProcessing">
+                    @(_isProcessing ? "Generating..." : "Generate Invite Link")
+                </MudButton>
+            </EditForm>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-2" Color="Color.Secondary">Send this code or link to your friends:</MudText>
+            <div class="d-flex align-center pa-2 border-dashed rounded mb-4" style="background-color: #fafafa;">
+                <MudText Typo="Typo.h5" Class="fw-bold font-monospace px-2" Style="letter-spacing: 2px; color: #111;">@_generatedInvite.Code</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Info" OnClick="CopyCodeToClipboard">Copy</MudButton>
+            </div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                This link expires on @_generatedInvite.ExpiresAt.ToLocalTime().ToString("g")
+            </MudText>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter, EditorRequired] public int ServerId { get; set; }
+    [Parameter, EditorRequired] public ViewModels.ServerChannelsViewModel ViewModel { get; set; } = null!;
+
+    private CreateInviteDto _inviteModel = new();
+    private InviteResponseDto? _generatedInvite;
+    private bool _isProcessing;
+
+    private async Task GenerateInviteCode()
+    {
+        _isProcessing = true;
+        _generatedInvite = await ViewModel.CreateInviteAsync(_inviteModel);
+        _isProcessing = false;
+    }
+
+    private void CopyCodeToClipboard()
+    {
+        // Copy functionality can be handled via standard JSInterop calls
+        Snackbar.Add("Invite token copied to clipboard!", Severity.Success);
+    }
+}

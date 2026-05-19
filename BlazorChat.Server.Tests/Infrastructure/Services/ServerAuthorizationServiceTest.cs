@@ -1,6 +1,7 @@
 using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Server.Infrastructure.Services;
+using BlazorChat.Shared.Enums;
 using NSubstitute;
 
 namespace BlazorChat.Tests.Server.Infrastructure.Services;

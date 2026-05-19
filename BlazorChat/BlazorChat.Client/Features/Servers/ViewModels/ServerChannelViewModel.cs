@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 
@@ -24,6 +25,8 @@ public class ServerChannelsViewModel : IDisposable
     public int? EditingChannelId { get; private set; }
     public int? EditingCategoryId { get; private set; }
     public string EditName { get; set; } = string.Empty;
+    public ServerRole UserRole { get; private set; } = ServerRole.Member;
+    public bool CanManageServer => UserRole is ServerRole.Admin or ServerRole.Owner;
 
     public ServerChannelsViewModel(IChannelsApiService apiService, NavigationManager nav, AppState appState)
     {
@@ -55,6 +58,7 @@ public class ServerChannelsViewModel : IDisposable
         IsLoading = true;
         StateChanged?.Invoke();
         
+        UserRole = await _apiService.GetUserRoleInServerAsync(serverId);
         Channels = await _apiService.GetChannelsAsync(serverId);
         Categories = await _apiService.GetCategoriesAsync(serverId);
         
@@ -71,6 +75,11 @@ public class ServerChannelsViewModel : IDisposable
         _appState.SaveServerChannel(_currentServerId, channelId);
 
         StateChanged?.Invoke();
+    }
+    
+    public async Task<InviteResponseDto?> CreateInviteAsync(CreateInviteDto dto)
+    {
+        return await _apiService.CreateServerInviteAsync(_currentServerId, dto);
     }
 
     private void UpdateActiveChannel()

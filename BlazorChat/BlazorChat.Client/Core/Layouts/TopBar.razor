@@ -1,6 +1,6 @@
 @using BlazorChat.Client.Features.Friends.Dialogs
 @using BlazorChat.Client.Features.Notifications.Components
-@using BlazorChat.Client.Features.Servers.Dialogs.AddServer
+@using BlazorChat.Client.Features.Servers.Dialogs.JoinServer
 @using BlazorChat.Client.ViewModels
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -11,9 +11,9 @@
     <div class="top-bar-actions">
         
         <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   OnClick="OpenAddServer">
-            Add Server
+                   Color="Color.Info" 
+                   OnClick="OpenJoinServer">
+            Join Server
         </MudButton>
 
         <MudButton Variant="Variant.Filled" 
@@ -21,10 +21,6 @@
                    OnClick="OpenAddFriend">
             Add Friend
         </MudButton>
-
-        <MudTooltip Text="Explore Servers">
-            <MudIconButton Icon="@Icons.Material.Filled.Explore" Color="Color.Default" />
-        </MudTooltip>
         
         <div class="inbox-container">
             <MudBadge Content="@ViewModel.PendingRequests.Count" 
@@ -57,8 +53,8 @@
         await ViewModel.InitializeAsync();
     }
 
-    private void OpenAddServer() => 
-        DialogService.ShowAsync<CreateServerModal>("Create Server", _standardOptions);
+    private void OpenJoinServer() => 
+        DialogService.ShowAsync<JoinServerModal>("Join a Server", _standardOptions);
 
     private void OpenAddFriend() => 
         DialogService.ShowAsync<AddFriendModal>("Add Friend", _standardOptions);

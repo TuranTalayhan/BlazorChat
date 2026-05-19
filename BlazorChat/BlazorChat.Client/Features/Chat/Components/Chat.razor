@@ -42,20 +42,27 @@
                 </ItemTemplate>
             </Virtualize>
         </div>
+
         <div class="chat-input-footer" style="display:flex; justify-content:flex-end; font-size: 0.8rem; margin-top: 4px;">
             <span style="color: @(IsOverLimit ? "red" : "gray")">
-                @(CurrentMessageLength) / @ChatConstants.MaxMessageLength
+                @CurrentMessageLength / @ChatConstants.MaxMessageLength
             </span>
             @if (IsOverLimit)
             {
                 <span style="color: red; margin-left: 8px;">Message is too long!</span>
             }
         </div>
+
         <div class="chat-input-wrapper">
-            <input @ref="_inputRef" class="chat-input" @bind="ViewModel.CurrentMessage" 
-                   @bind:event="oninput" @onkeydown="HandleKey" disabled="@ViewModel.IsSending" />
+            <input @ref="_inputRef" 
+                   class="chat-input" 
+                   @bind="ViewModel.CurrentMessage" 
+                   @bind:event="oninput"
+                   @onkeydown="HandleKey" 
+                   disabled="@ViewModel.IsSending" />
             
-            <MudIconButton Icon="@Icons.Material.Filled.Send" OnClick="ViewModel.SendAsync" 
+            <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                           OnClick="ViewModel.SendAsync" 
                            Disabled="@IsSendDisabled" />
         </div>
     }
@@ -74,7 +81,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.OnChanged += StateHasChanged;
+        ViewModel.OnChanged += OnViewModelChanged;        
         await ViewModel.InitializeAsync();
     }
 
@@ -89,5 +96,7 @@
         }
     }
 
-    public void Dispose() => ViewModel.OnChanged -= StateHasChanged;
+    private void OnViewModelChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => ViewModel.OnChanged -= OnViewModelChanged;
 }

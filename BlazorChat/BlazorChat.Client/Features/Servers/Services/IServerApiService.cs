@@ -11,6 +11,7 @@ public interface IServerApiService
     Task<List<ServerDto>> GetAllServersAsync(int id);
 
     Task<ServerDto?> CreateAsync(CreateServerDto dto);
+    void NotifyServersChanged();
 }
 
 public class ServerApiService(HttpClient http) : IServerApiService
@@ -41,5 +42,10 @@ public class ServerApiService(HttpClient http) : IServerApiService
         var server = await response.Content.ReadFromJsonAsync<ServerDto>();
         if (server != null) OnChanged?.Invoke();
         return server;
+    }
+    
+    public void NotifyServersChanged()
+    {
+        OnChanged?.Invoke();
     }
 }

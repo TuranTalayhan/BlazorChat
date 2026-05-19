@@ -7,6 +7,7 @@ using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Server.Infrastructure.Persistence.Repositories;
 using BlazorChat.Server.Infrastructure.Services;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

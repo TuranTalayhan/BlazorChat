@@ -1,13 +1,20 @@
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateChannel
+@using BlazorChat.Client.Features.Servers.Dialogs.Invite
 @using BlazorChat.Client.Features.Servers.ViewModels
 @using BlazorChat.Shared.Interfaces
 
 <div class="channel-sidebar-header d-flex align-center justify-space-between px-4 py-2">
     <MudText Typo="Typo.subtitle1" Class="fw-bold">@Server.Name</MudText>
     <MudMenu Icon="@Icons.Material.Filled.KeyboardArrowDown" AnchorOrigin="Origin.BottomRight">
-        <MudMenuItem OnClick="OpenCreateCategoryDialog" Icon="@Icons.Material.Filled.CreateNewFolder">Create Category</MudMenuItem>
-        <MudMenuItem OnClick="@(() => OpenCreateChannelDialog())" Icon="@Icons.Material.Filled.AddCircle">Create Channel</MudMenuItem>
+        <MudMenuItem OnClick="OpenInviteDialog" Icon="@Icons.Material.Filled.PersonAdd" IconColor="Color.Info">Invite People</MudMenuItem>
+        
+        @if (ViewModel.CanManageServer)
+        {
+            <MudDivider Class="my-2" />
+            <MudMenuItem OnClick="OpenCreateCategoryDialog" Icon="@Icons.Material.Filled.CreateNewFolder">Create Category</MudMenuItem>
+            <MudMenuItem OnClick="@(() => OpenCreateChannelDialog())" Icon="@Icons.Material.Filled.AddCircle">Create Channel</MudMenuItem>
+        }
     </MudMenu>
 </div>
 
@@ -63,6 +70,17 @@
     protected override void OnInitialized()
     {
         ViewModel.StateChanged += OnViewModelStateChanged;
+    }
+    
+    protected async Task OpenInviteDialog()
+    {
+        var parameters = new DialogParameters<InviteDialog> 
+        { 
+            { x => x.ServerId, Server.Id },
+            { x => x.ViewModel, ViewModel }
+        };
+        
+        await DialogService.ShowAsync<InviteDialog>("Invite Friends to Server", parameters);
     }
 
     protected async Task OpenCreateChannelDialog(int? categoryId = null)

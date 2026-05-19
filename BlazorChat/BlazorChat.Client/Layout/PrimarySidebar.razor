@@ -1,4 +1,4 @@
-@inject IServerApiService ServerRepo
+@inject IServerApiService ServerApiService
 @inject NavigationState NavState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -46,8 +46,8 @@
     {
         NavState.OnChanged += StateHasChanged;
         
-        ServerRepo.OnChanged += OnServersChanged;
-        _servers = await ServerRepo.GetAllMyServersAsync();
+        ServerApiService.OnChanged += OnServersChanged;
+        _servers = await ServerApiService.GetAllMyServersAsync();
     }
 
     private async Task SelectFriendsAsync()
@@ -76,14 +76,14 @@
 
     private async void OnServersChanged()
     {
-        _servers = await ServerRepo.GetAllMyServersAsync();
+        _servers = await ServerApiService.GetAllMyServersAsync();
         await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
         NavState.OnChanged -= StateHasChanged;
-        ServerRepo.OnChanged -= OnServersChanged;
+        ServerApiService.OnChanged -= OnServersChanged;
     }
     
     private async Task OpenCreateServerModal()
@@ -91,9 +91,13 @@
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
         var dialog = await DialogService.ShowAsync<CreateServerModal>("Create Server", options);
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result is { Canceled: false, Data: ServerDto newServer })
         {
             Snackbar.Add("Server created!", Severity.Success);
+        
+            ServerApiService.NotifyServersChanged();
+        
+            await SelectServerAsync(newServer);
         }
     }
 }

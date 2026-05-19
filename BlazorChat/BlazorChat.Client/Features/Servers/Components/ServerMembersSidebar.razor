@@ -1,0 +1,77 @@
+@using BlazorChat.Client.Features.Servers.ViewModels
+@using BlazorChat.Shared.Enums
+@inject ServerMembersViewModel ViewModel
+@implements IDisposable
+
+<aside class="members-sidebar">
+    <div class="members-sidebar-header px-4 py-3">
+        <MudText Typo="Typo.subtitle2" Class="fw-bold text-uppercase" Style="color: #6a6f74; font-size: 0.75rem; letter-spacing: 0.5px;">
+            Server Members — @ViewModel.Members.Count
+        </MudText>
+    </div>
+
+    <div class="members-list px-2">
+        @if (ViewModel.IsLoading)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small" />
+            </div>
+        }
+        else if (!ViewModel.Members.Any())
+        {
+            <div class="pa-4 text-center" style="color: #8a8f95; font-size: 0.85rem;">No members found</div>
+        }
+        else
+        {
+            @foreach (var member in ViewModel.Members)
+            {
+                <div class="member-item d-flex align-center" @key="member.Id">
+                    <div class="avatar">
+                        @if (!string.IsNullOrEmpty(member.AvatarUrl))
+                        {
+                            <img src="@member.AvatarUrl" alt="@member.Username" class="avatar-image" />
+                        }
+                        else
+                        {
+                            <span>@(member.Username.ToUpper()[0])</span>
+                        }
+                        <div class="status @ViewModel.GetStatusClass(member.Status)"></div>
+                    </div>
+
+                    <div class="member-details">
+                        <div class="d-flex align-center">
+                            <span class="member-name @ViewModel.GetRoleCssClass(member.Role)">
+                                @member.Username
+                            </span>
+                
+                            @if (member.Role == ServerRole.Owner)
+                            {
+                                <span class="role-badge owner-badge">Owner</span>
+                            }
+                            else if (member.Role == ServerRole.Admin)
+                            {
+                                <span class="role-badge admin-badge">Admin</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</aside>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.StateChanged += OnViewModelStateChanged;
+        await ViewModel.InitializeAsync();
+    }
+
+    private void OnViewModelStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+        ViewModel.Dispose();
+    }
+}

@@ -2,6 +2,7 @@ using BlazorChat.Server.Application.Features.Servers;
 using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
@@ -11,11 +12,29 @@ public class ServerRepository(AppDbContext db) : IServerRepository
     public async Task<ServerRole?> GetUserRoleInServerAsync(int serverId, int userId, CancellationToken ct)
     {
         return await db.ServerMemberships
-            .AsNoTracking()
             .Where(sm => sm.ServerId == serverId && sm.UserId == userId)
-            .Select(sm => sm.Role)
+            .Select(sm => (ServerRole?)sm.Role)
             .FirstOrDefaultAsync(ct);
     }
+
+    public async Task AddInviteAsync(ServerInvite invite, CancellationToken ct)
+    {
+        await db.Set<ServerInvite>().AddAsync(invite, ct);
+    }
+
+    public async Task<ServerInvite?> GetInviteWithServerByCodeAsync(string code, CancellationToken ct)
+    {
+        var normalizedCode = code.Trim().ToUpper();
+        return await db.Set<ServerInvite>()
+            .Include(si => si.Server)
+            .FirstOrDefaultAsync(si => si.Code == normalizedCode, ct);
+    }
+
+    public async Task AddMembershipAsync(ServerMembership membership, CancellationToken ct)
+    {
+        await db.Set<ServerMembership>().AddAsync(membership, ct);
+    }
+    
     public async Task<List<ChannelDto>> GetChannelsByServerIdAsync(int serverId, CancellationToken ct)
     {
         return await db.Channels

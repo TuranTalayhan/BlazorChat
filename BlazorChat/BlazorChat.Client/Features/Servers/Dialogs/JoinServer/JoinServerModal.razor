@@ -1,0 +1,73 @@
+@using BlazorChat.Client.Features.Servers.Services
+@inject IChannelsApiService ApiService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IServerApiService ServerApiService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="fw-bold">Join a Server</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4" Color="Color.Secondary">
+            Enter an 8-character invite code to join an existing workspace community.
+        </MudText>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+                @_errorMessage
+            </MudAlert>
+        }
+
+        <MudTextField @bind-Value="_inviteCode"
+                      Label="Invite Code"
+                      Placeholder="e.g., A1B2C3D4"
+                      Variant="Variant.Outlined"
+                      Disabled="_isProcessing"
+                      Class="mb-6"
+                      AutoCloseOnEnter="false" />
+
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Info" 
+                   FullWidth="true" 
+                   Disabled="@(string.IsNullOrWhiteSpace(_inviteCode) || _isProcessing)"
+                   OnClick="SubmitJoinRequest">
+            @(_isProcessing ? "Joining Community..." : "Join Server")
+        </MudButton>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _inviteCode = string.Empty;
+    private string _errorMessage = string.Empty;
+    private bool _isProcessing;
+
+    private async Task SubmitJoinRequest()
+    {
+        if (string.IsNullOrWhiteSpace(_inviteCode)) return;
+
+        _isProcessing = true;
+        _errorMessage = string.Empty;
+
+        var result = await ApiService.JoinServerWithCodeAsync(_inviteCode);
+
+        if (result is { IsSuccess: true, Data: not null })
+        {
+            Snackbar.Add($"Successfully joined {result.Data.Name}!", Severity.Success);
+            
+            ServerApiService.NotifyServersChanged();
+
+            MudDialog.Close(DialogResult.Ok(result.Data));
+            NavigationManager.NavigateTo($"/chat");
+        }
+        else
+        {
+            _errorMessage = result.ErrorMessage ?? "Invalid invitation code.";
+        }
+
+        _isProcessing = false;
+    }
+}

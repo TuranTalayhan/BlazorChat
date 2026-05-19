@@ -4,5 +4,6 @@ namespace BlazorChat.Server.Application.Interfaces;
 
 public interface IChatNotificationService
 {
-    Task SendMessageToChannelAsync(int channelId, int recipientUserId, MessageDto message);
+    public Task SendMessageToChannelAsync(int channelId, int recipientUserId, MessageDto message,
+        string? excludedConnectionId = null);
 }

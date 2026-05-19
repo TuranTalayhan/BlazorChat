@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using BlazorChat.Client.Core;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 
 namespace BlazorChat.Client.Features.Servers.Services;
 
@@ -11,42 +12,49 @@ public interface IChannelsApiService
     Task<List<CategoryDto>> GetCategoriesAsync(int serverId, CancellationToken ct = default);
     
     Task<ChannelDto?> CreateChannelAsync(int serverId, CreateServerChannelDto dto);
-    
     Task<ApiResponse<CategoryDto>> CreateCategoryAsync(int serverId, CreateCategoryDto dto);
     
     Task DeleteChannelAsync(int serverId, int channelId);
-    
     Task DeleteCategoryAsync(int serverId, int categoryId);
     
     Task UpdateChannelAsync(int channelId, UpdateChannelDto dto);
-    
     Task UpdateCategoryAsync(int categoryId, UpdateCategoryDto dto);
+
+    Task<ServerRole> GetUserRoleInServerAsync(int serverId, CancellationToken ct = default);
+    Task<InviteResponseDto?> CreateServerInviteAsync(int serverId, CreateInviteDto dto, CancellationToken ct = default);
+    Task<ApiResponse<ServerDto>> JoinServerWithCodeAsync(string code, CancellationToken ct = default);
+    Task<List<UserDto>> GetServerMembersAsync(int serverId, CancellationToken ct = default);
 }
 
 public class ChannelsApiService(HttpClient http) : IChannelsApiService
 {
     private const string BaseUrl = "api/servers";
     
+    public async Task<List<UserDto>> GetServerMembersAsync(int serverId, CancellationToken ct = default)
+    {
+        return await http.GetFromJsonAsync<List<UserDto>>($"api/servers/{serverId}/members", ct) ?? [];
+    }
+    
     public async Task<List<ChannelDto>> GetChannelsAsync(int serverId, CancellationToken ct)
     {
-        return await http.GetFromJsonAsync<List<ChannelDto>>($"api/servers/{serverId}/channels", ct) ?? [];
+        return await http.GetFromJsonAsync<List<ChannelDto>>($"{BaseUrl}/{serverId}/channels", ct) ?? [];
     }
 
     public async Task<List<CategoryDto>> GetCategoriesAsync(int serverId, CancellationToken ct = default)
     {
-        return await http.GetFromJsonAsync<List<CategoryDto>>($"api/servers/{serverId}/categories", ct) ?? [];
+        return await http.GetFromJsonAsync<List<CategoryDto>>($"{BaseUrl}/{serverId}/categories", ct) ?? [];
     }
 
     public async Task<ChannelDto?> CreateChannelAsync(int serverId, CreateServerChannelDto dto)
     {
-        var response = await http.PostAsJsonAsync($"api/servers/{serverId}/channels", dto);
+        var response = await http.PostAsJsonAsync($"{BaseUrl}/{serverId}/channels", dto);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<ChannelDto>();
     }
 
     public async Task<ApiResponse<CategoryDto>> CreateCategoryAsync(int serverId, CreateCategoryDto dto)
     {
-        var response = await http.PostAsJsonAsync($"api/servers/{serverId}/categories", dto);
+        var response = await http.PostAsJsonAsync($"{BaseUrl}/{serverId}/categories", dto);
 
         if (response.IsSuccessStatusCode)
         {
@@ -106,5 +114,58 @@ public class ChannelsApiService(HttpClient http) : IChannelsApiService
     public async Task UpdateCategoryAsync(int categoryId, UpdateCategoryDto dto)
     {
         await http.PatchAsJsonAsync($"api/categories/{categoryId}", dto);
+    }
+    
+    public async Task<ServerRole> GetUserRoleInServerAsync(int serverId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await http.GetAsync($"{BaseUrl}/{serverId}/role", ct);
+            
+            if (!response.IsSuccessStatusCode) 
+                return ServerRole.Member;
+
+            return await response.Content.ReadFromJsonAsync<ServerRole>(cancellationToken: ct);
+        }
+        catch
+        {
+            return ServerRole.Member;
+        }
+    }
+
+    public async Task<InviteResponseDto?> CreateServerInviteAsync(int serverId, CreateInviteDto dto, CancellationToken ct = default)
+    {
+        var response = await http.PostAsJsonAsync($"{BaseUrl}/{serverId}/invites", dto, ct);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<InviteResponseDto>(cancellationToken: ct);
+    }
+    
+    public async Task<ApiResponse<ServerDto>> JoinServerWithCodeAsync(string code, CancellationToken ct = default)
+    {
+        var response = await http.PostAsync($"api/servers/join/{code.Trim()}", null, ct);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var server = await response.Content.ReadFromJsonAsync<ServerDto>(cancellationToken: ct);
+            return new ApiResponse<ServerDto> { IsSuccess = true, Data = server, StatusCode = response.StatusCode };
+        }
+
+        var apiResponse = new ApiResponse<ServerDto> { IsSuccess = false, StatusCode = response.StatusCode };
+    
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            apiResponse.ErrorMessage = await response.Content.ReadAsStringAsync(ct);
+        }
+        else
+        {
+            apiResponse.ErrorMessage = "An unexpected error occurred while trying to join.";
+        }
+
+        return apiResponse;
     }
 }
