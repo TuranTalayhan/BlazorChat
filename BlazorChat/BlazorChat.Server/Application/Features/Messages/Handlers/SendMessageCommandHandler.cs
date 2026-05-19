@@ -1,14 +1,16 @@
 using BlazorChat.Server.Application.Features.Messages.Commands;
 using BlazorChat.Server.Application.Interfaces;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
-using BlazorChat.Server.Infrastructure.Persistence;
 using BlazorChat.Shared.DTO;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Messages.Handlers;
 
-public class SendMessageCommandHandler(AppDbContext db, IChannelAuthorizationService authService, IChatNotificationService notifications) 
+public class SendMessageCommandHandler(
+    IMessageRepository messageRepository, 
+    IChannelAuthorizationService authService, 
+    IChatNotificationService notifications) 
     : ICommandHandler<SendMessageCommand, MessageResult<MessageDto>>
 {
     public async ValueTask<MessageResult<MessageDto>> Handle(SendMessageCommand request, CancellationToken ct)
@@ -16,48 +18,33 @@ public class SendMessageCommandHandler(AppDbContext db, IChannelAuthorizationSer
         if (request.Dto.ChannelId <= 0)
             return new MessageResult<MessageDto>(false, Error: MessageError.BadRequest, ErrorMessage: "Invalid channel ID.");
 
-        if (!await authService.CanAccessChannelAsync(request.CurrentUserId, request.Dto.ChannelId, ct))
+        var canAccess = await authService.CanAccessChannelAsync(request.CurrentUserId, request.Dto.ChannelId, ct);
+        if (!canAccess)
             return new MessageResult<MessageDto>(false, Error: MessageError.Forbidden, ErrorMessage: "Access denied.");
 
-        var user = await db.Users.FindAsync([request.CurrentUserId], ct);
+        var user = await messageRepository.GetUserByIdAsync(request.CurrentUserId, ct);
         if (user == null)
             return new MessageResult<MessageDto>(false, Error: MessageError.NotFound, ErrorMessage: "User not found.");
 
-        // 1. Save the new message to the database
-        var message = new Message
-        {
-            Content = request.Dto.Content.Trim(),
-            ChannelId = request.Dto.ChannelId,
-            AuthorId = request.CurrentUserId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        db.Messages.Add(message);
-        await db.SaveChangesAsync(ct);
+        var message = Message.Create(request.Dto.Content, request.Dto.ChannelId, request.CurrentUserId);
+        
+        await messageRepository.AddAsync(message, ct);
+        await messageRepository.SaveChangesAsync(ct);
 
         var messageDto = new MessageDto
         {
             Id = message.Id,
             Content = message.Content,
             CreatedAt = message.CreatedAt,
-            AuthorId = request.CurrentUserId,
+            AuthorId = message.AuthorId,
             AuthorUsername = user.Username,
             AuthorAvatarUrl = user.AvatarUrl,
             ChannelId = message.ChannelId
         };
 
-        // 2. DYNAMICALLY FIND THE RECIPIENT
-        // Look up the channel members to see who the OTHER person is
-        var recipientUserId = await db.Channels
-            .Where(c => c.Id == request.Dto.ChannelId)
-            .SelectMany(c => c.Members)
-            .Where(m => m.Id != request.CurrentUserId) // Exclude the sender
-            .Select(m => m.Id)
-            .FirstOrDefaultAsync(ct);
-
-        // 3. Dispatch the notification out through your updated service
-        // (recipientUserId will be 0 if it's a server channel with no explicit "other" single member)
-        await notifications.SendMessageToChannelAsync(request.Dto.ChannelId, recipientUserId, messageDto);
+        var recipientUserId = await messageRepository.GetDmRecipientIdAsync(message.ChannelId, message.AuthorId, ct);
+        
+        await notifications.SendMessageToChannelAsync(message.ChannelId, recipientUserId, messageDto);
 
         return new MessageResult<MessageDto>(true, Data: messageDto);
     }

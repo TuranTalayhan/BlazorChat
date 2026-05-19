@@ -11,23 +11,32 @@ public enum MessageType
 
 public class Message
 {
-    [Key]
-    public int Id { get; set; }
+    public int Id { get; init; }
 
     [Required]
     [MaxLength(ChatConstants.MaxMessageLength)]
-    public string Content { get; set; } = string.Empty;
+    public string Content { get; init; } = string.Empty;
 
-    public MessageType Type { get; set; } = MessageType.Text;
+    public MessageType Type { get; init; } = MessageType.Text;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; init; }
     
-    public int ChannelId { get; set; }
-    public Channel Channel { get; set; } = null!;
+    public int ChannelId { get; init; }
+    public Channel Channel { get; init; } = null!;
 
-    // Author
-    public int AuthorId { get; set; }
-    public User Author { get; set; } = null!;
+    public int AuthorId { get; init; }
+    public User Author { get; init; } = null!;
+    
+    public static Message Create(string content, int channelId, int authorId)
+    {
+        return new Message
+        {
+            Content = content.Trim(),
+            ChannelId = channelId,
+            AuthorId = authorId,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
 }

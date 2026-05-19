@@ -12,4 +12,22 @@ public class UserChannelState
 
     [Required]
     public int LastReadMessageId { get; set; }
+    
+    public static UserChannelState Create(int userId, int channelId, int lastMessageId)
+    {
+        return new UserChannelState
+        {
+            UserId = userId,
+            ChannelId = channelId,
+            LastReadMessageId = lastMessageId
+        };
+    }
+    
+    public void TrackProgress(int lastMessageId)
+    {
+        if (lastMessageId > LastReadMessageId)
+        {
+            LastReadMessageId = lastMessageId;
+        }
+    }
 }
