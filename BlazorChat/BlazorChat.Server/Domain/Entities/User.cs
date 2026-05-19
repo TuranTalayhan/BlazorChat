@@ -40,4 +40,11 @@ public class User
         user.PasswordHash = hashStrategy(user, password);
         return user;
     }
+    
+    public void UpdateStatus(UserStatus newStatus)
+    {
+        if (Status == newStatus) return; // Guard against redundant state mutations
+        
+        Status = newStatus;
+    }
 }

@@ -1,29 +1,23 @@
 using BlazorChat.Server.Application.Features.Users.Commands;
 using BlazorChat.Server.Application.Interfaces;
-using BlazorChat.Server.Domain.Entities;
-using BlazorChat.Server.Infrastructure.Persistence;
+using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Shared.DTO;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorChat.Server.Application.Features.Users.Handlers;
 
-public class UpdateUserStatusCommandHandler(AppDbContext db, IUserNotificationService notifications) 
+public class UpdateUserStatusCommandHandler(IUserRepository userRepository, IUserNotificationService notifications) 
     : ICommandHandler<UpdateUserStatusCommand, bool>
 {
     public async ValueTask<bool> Handle(UpdateUserStatusCommand request, CancellationToken ct)
     {
-        var user = await db.Users.FindAsync([request.CurrentUserId], ct);
+        var user = await userRepository.GetByIdAsync(request.CurrentUserId, ct);
         if (user == null) return false;
 
-        var friendIds = await db.Friendships
-            .Where(f => (f.RequesterId == request.CurrentUserId || f.ReceiverId == request.CurrentUserId)
-                        && f.Status == FriendshipStatus.Accepted)
-            .Select(f => f.RequesterId == request.CurrentUserId ? f.ReceiverId.ToString() : f.RequesterId.ToString())
-            .ToListAsync(ct);
+        var friendIds = await userRepository.GetAcceptedFriendIdsAsync(request.CurrentUserId, ct);
 
-        user.Status = request.Dto.Status;
-        await db.SaveChangesAsync(ct);
+        user.UpdateStatus(request.Dto.Status);
+        await userRepository.SaveChangesAsync(ct);
 
         var statusMsg = new ReceiveUserStatusDto
         {
