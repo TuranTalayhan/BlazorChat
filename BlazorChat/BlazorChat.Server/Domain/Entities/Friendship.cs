@@ -18,4 +18,23 @@ public class Friendship
 
     public FriendshipStatus Status { get; set; } = FriendshipStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public void Accept()
+    {
+        if (Status != FriendshipStatus.Pending)
+            return;
+
+        Status = FriendshipStatus.Accepted;
+    }
+    
+    public static Friendship CreatePending(int requesterId, int receiverId)
+    {
+        return new Friendship
+        {
+            RequesterId = requesterId,
+            ReceiverId = receiverId,
+            Status = FriendshipStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
 }

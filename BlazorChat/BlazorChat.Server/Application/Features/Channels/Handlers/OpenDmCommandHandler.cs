@@ -17,15 +17,16 @@ public class OpenDmCommandHandler(IChannelRepository channelRepository)
         if (existingDm != null)
             return new ChannelResult<int>(true, Data: existingDm.Id, IsNewChannel: false);
 
-        var usersExist = await channelRepository.UsersExistAsync(request.CurrentUserId, request.FriendId, ct);
-        if (!usersExist)
+        var (currentUser, friendUser) = await channelRepository.GetDmUsersAsync(request.CurrentUserId, request.FriendId, ct);
+        
+        if (currentUser == null || friendUser == null)
             return new ChannelResult<int>(false, Error: ChannelError.NotFound, ErrorMessage: "User not found.");
 
-        var newDm = Channel.CreateDirectMessage(request.CurrentUserId, request.FriendId);
+        var channel = Channel.CreateDirectMessage(currentUser, friendUser);
 
-        await channelRepository.AddAsync(newDm, ct);
+        await channelRepository.AddAsync(channel, ct);
         await channelRepository.SaveChangesAsync(ct);
 
-        return new ChannelResult<int>(true, Data: newDm.Id, IsNewChannel: true);
+        return new ChannelResult<int>(true, Data: channel.Id, IsNewChannel: true);
     }
 }

@@ -10,8 +10,7 @@ public interface IChannelRepository
     Task<bool> IsServerMemberAsync(int serverId, int userId, CancellationToken ct);
     Task<Channel?> GetDirectMessageByMembersAsync(int currentUserId, int friendId, CancellationToken ct);
     Task<int?> GetDirectMessageIdByMembersAsync(int currentUserId, int friendId, CancellationToken ct);
-    Task<(User? Current, User? Friend)> GetDmUsersAsync(int currentUserId, int friendId, CancellationToken ct);
-    Task<bool> UsersExistAsync(int userId1, int userId2, CancellationToken ct);
+    Task<(User? Current, User? Friend)> GetDmUsersAsync(int currentUserId, int friendId, CancellationToken ct);    Task<bool> UsersExistAsync(int userId1, int userId2, CancellationToken ct);
     Task AddAsync(Channel channel, CancellationToken ct);
     Task<Channel?> GetByIdAsync(int channelId, CancellationToken ct);
     void Remove(Channel channel);

@@ -1,4 +1,5 @@
 using BlazorChat.Client.Core;
+using BlazorChat.Client.Features.DirectMessage;
 using BlazorChat.Client.Features.Friends.Services;
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
@@ -14,31 +15,29 @@ public enum FriendFilter
 public class FriendsSidebarViewModel : IDisposable
 {
     private readonly IFriendshipApiService _friendshipApiService;
+    private readonly IDirectMessageApiService _dmApiService;
     private readonly IGlobalNotificationService _notifications;
     private readonly NavigationManager _navigationManager;
     private readonly AppState _appState;
-    
+
     public event Action? OnStateChanged;
 
     private Dictionary<int, SidebarFriendSummaryDto> Friends { get; } = new();
     public HashSet<int> UnreadFriends { get; } = new(); 
-    
+
     public string SearchTerm { get; set; } = string.Empty;
     public FriendFilter StatusFilter { get; set; } = FriendFilter.All;
     public int ActiveFriendId { get; private set; }
-
-    public IEnumerable<SidebarFriendSummaryDto> FilteredFriends => Friends.Values.Where(f =>
-        (string.IsNullOrWhiteSpace(SearchTerm) || f.Username.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
-        (StatusFilter == FriendFilter.All || f.Status != UserStatus.Offline)
-    );
-
+    
     public FriendsSidebarViewModel(
         IFriendshipApiService friendshipApiService, 
+        IDirectMessageApiService dmApiService,
         IGlobalNotificationService notifications,
         NavigationManager navigationManager, 
         AppState appState)
     {
         _friendshipApiService = friendshipApiService;
+        _dmApiService = dmApiService;
         _notifications = notifications;
         _navigationManager = navigationManager;
         _appState = appState;
@@ -47,6 +46,12 @@ public class FriendsSidebarViewModel : IDisposable
         _notifications.OnNewFriendAdded += HandleNewFriend;
         _notifications.OnMessageReceived += HandleIncomingMessage; 
     }
+    
+    public IEnumerable<SidebarFriendSummaryDto> FilteredFriends => Friends.Values.Where(f =>
+        (string.IsNullOrWhiteSpace(SearchTerm) || f.Username.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
+        (StatusFilter == FriendFilter.All || f.Status != UserStatus.Offline)
+    );
+
 
     public async Task InitializeAsync()
     {
@@ -84,12 +89,28 @@ public class FriendsSidebarViewModel : IDisposable
     {
         if (!Friends.TryGetValue(friendId, out var friend)) return;
 
+        var targetChannelId = friend.ChannelId;
+
+        if (targetChannelId == 0)
+        {
+            targetChannelId = await _dmApiService.OpenDirectMessageAsync(friendId);
+        
+            if (targetChannelId > 0)
+            {
+                Friends[friendId] = friend with { ChannelId = targetChannelId };
+            }
+            else
+            {
+                return;
+            }
+        }
+
         ActiveFriendId = friendId;
         UnreadFriends.Remove(friendId); 
         OnStateChanged?.Invoke();
-        
-        _appState.SetLastSelectedFriend(friendId, friend.ChannelId);
-        _navigationManager.NavigateTo($"/chat/{friend.ChannelId}");
+    
+        _appState.SetLastSelectedFriend(friendId, targetChannelId);
+        _navigationManager.NavigateTo($"/chat/{targetChannelId}");
     }
 
     private void HandleUserStatusChanged(ReceiveUserStatusDto statusDto)

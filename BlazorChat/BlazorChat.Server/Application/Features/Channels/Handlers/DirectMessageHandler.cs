@@ -31,7 +31,7 @@ public class GetOrCreateDmHandler(IChannelRepository channelRepository, IUserCon
             return new ChannelResult<int>(false, Error: ChannelError.NotFound, ErrorMessage: "User or friend profile could not be resolved.");
         }
 
-        var channel = Channel.CreateDirectMessage(currentUser.Id, friendUser.Id);
+        var channel = Channel.CreateDirectMessage(currentUser, friendUser);
 
         await channelRepository.AddAsync(channel, ct);
         await channelRepository.SaveChangesAsync(ct);

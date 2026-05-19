@@ -28,9 +28,7 @@ public class DirectMessagesController(IMediator mediator) : ControllerBase
         var dms = await mediator.Send(new GetMyDmsQuery(userId), ct);
         return Ok(dms);
     }
-
-    // POST /api/dms
-    // The "Intent to Converse" (Get or Create) endpoint
+    
     [HttpPost]
     public async Task<IActionResult> OpenDirectMessage([FromBody] int friendId, CancellationToken ct = default)
     {

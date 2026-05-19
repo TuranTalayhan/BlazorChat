@@ -54,7 +54,6 @@ public class ChannelsApiService(HttpClient http) : IChannelsApiService
             return new ApiResponse<CategoryDto> { IsSuccess = true, Data = data, StatusCode = response.StatusCode };
         }
 
-        // Handle the specific error states
         var apiResponse = new ApiResponse<CategoryDto> 
         { 
             IsSuccess = false, 
@@ -64,7 +63,6 @@ public class ChannelsApiService(HttpClient http) : IChannelsApiService
         switch (response.StatusCode)
         {
             case HttpStatusCode.BadRequest:
-                // Extract the { message = result.ErrorMessage } payload from the server
                 var errorContent = await response.Content.ReadFromJsonAsync<ErrorPayload>();
                 apiResponse.ErrorMessage = errorContent?.Message ?? "Invalid request data.";
                 break;

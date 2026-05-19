@@ -26,17 +26,13 @@ public class Channel
     public ICollection<Message> Messages { get; set; } = new List<Message>();
     public ICollection<User> Members { get; set; } = new List<User>();
     
-    public static Channel CreateDirectMessage(int user1Id, int user2Id)
+    public static Channel CreateDirectMessage(User currentUser, User friendUser)
     {
         return new Channel
         {
             Type = ChannelType.DirectMessage,
             CreatedAt = DateTime.UtcNow,
-            Members = new List<User> 
-            { 
-                new() { Id = user1Id }, 
-                new() { Id = user2Id } 
-            }
+            Members = new List<User> { currentUser, friendUser }
         };
     }
     
