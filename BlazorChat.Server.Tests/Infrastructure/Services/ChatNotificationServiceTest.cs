@@ -2,7 +2,6 @@ using BlazorChat.Server.Application.Interfaces;
 using BlazorChat.Server.Hubs;
 using BlazorChat.Server.Infrastructure.Services;
 using BlazorChat.Shared.DTO;
-using BlazorChat.Shared.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 

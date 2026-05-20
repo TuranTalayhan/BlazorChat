@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="blazorchat@localhost" uuid="b65d849d-83f5-4957-9708-d46423759d06">
+    <data-source source="LOCAL" name="blazorchat@localhost" uuid="a4b31763-9cc7-4984-b735-494e1e2b1747">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <configured-by-url>true</configured-by-url>

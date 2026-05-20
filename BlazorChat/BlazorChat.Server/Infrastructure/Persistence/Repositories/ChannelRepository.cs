@@ -7,6 +7,20 @@ namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
 
 public class ChannelRepository(AppDbContext db) : IChannelRepository
 {
+    
+    public async Task<ServerDto?> GetServerByChannelIdAsync(int channelId, CancellationToken ct)
+    {
+        return await db.Channels
+            .AsNoTracking()
+            .Where(c => c.Id == channelId && c.Server != null)
+            .Select(c => new ServerDto
+            {
+                Id = c.Server!.Id,
+                Name = c.Server.Name
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+    
     public async Task<List<ChannelDto>> GetUserDirectMessagesAsync(int userId, CancellationToken ct)
     {
         return await db.Channels

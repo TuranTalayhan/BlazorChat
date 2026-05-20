@@ -3,7 +3,6 @@ using System.Security.Claims;
 using BlazorChat.Server.Application.Features.Messages.Commands;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using BlazorChat.Shared.Hubs;
 using Mediator;
 
 namespace BlazorChat.Server.Hubs;

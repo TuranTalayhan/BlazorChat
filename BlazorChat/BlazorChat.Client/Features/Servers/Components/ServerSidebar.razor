@@ -1,8 +1,10 @@
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateCategory
 @using BlazorChat.Client.Features.Servers.Dialogs.CreateChannel
 @using BlazorChat.Client.Features.Servers.Dialogs.Invite
+@using BlazorChat.Client.Features.Servers.Services
 @using BlazorChat.Client.Features.Servers.ViewModels
 @using BlazorChat.Shared.Interfaces
+@inject IServerHubService ServerHubService
 
 <div class="channel-sidebar-header d-flex align-center justify-space-between px-4 py-2">
     <MudText Typo="Typo.subtitle1" Class="fw-bold">@Server.Name</MudText>
@@ -65,8 +67,12 @@
 
     [Parameter, EditorRequired] public ServerDto Server { get; set; } = null!;
 
-    protected override async Task OnParametersSetAsync() 
-        => await ViewModel.InitializeAsync(Server.Id);
+    protected override async Task OnParametersSetAsync()
+    {
+        await ServerHubService.WatchServerAsync(Server.Id);
+        
+        await ViewModel.InitializeAsync(Server.Id);   
+    }
 
     protected override void OnInitialized()
     {

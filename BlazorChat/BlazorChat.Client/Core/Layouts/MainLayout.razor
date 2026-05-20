@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject NavigationState NavState
+@inject IGlobalNotificationService Notifications
 @using BlazorChat.Client.Features.Servers.Components
 @implements IDisposable
 
@@ -34,6 +35,20 @@
 </AuthorizeView>
 
 @code {
-    protected override void OnInitialized() => NavState.OnChanged += StateHasChanged;
-    public void Dispose() => NavState.OnChanged -= StateHasChanged;
+    protected override void OnInitialized()
+    {
+        Notifications.OnUserStatusChanged += HandleGlobalPresenceEvent;
+        NavState.OnChanged += StateHasChanged;
+    }
+    
+    private void HandleGlobalPresenceEvent(ReceiveUserStatusDto statusDto)
+    {
+        NavState.HandleUserStatusChanged(statusDto);
+    }
+
+    public void Dispose()
+    {
+        Notifications.OnUserStatusChanged -= HandleGlobalPresenceEvent;
+        NavState.OnChanged -= StateHasChanged;  
+    } 
 }

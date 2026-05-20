@@ -9,6 +9,17 @@ namespace BlazorChat.Server.Infrastructure.Persistence.Repositories;
 
 public class ServerRepository(AppDbContext db) : IServerRepository
 {
+    public async Task<bool> UpdateMemberRoleAsync(int serverId, int userId, ServerRole newRole, CancellationToken ct)
+    {
+        var membership = await db.ServerMemberships
+            .FirstOrDefaultAsync(m => m.ServerId == serverId && m.UserId == userId, ct);
+        
+        if (membership == null) return false;
+    
+        membership.Role = newRole;
+        return true;
+    }
+    
     public async Task<List<UserDto>> GetMembersByServerIdAsync(int serverId, CancellationToken ct)
     {
         return await db.ServerMemberships
@@ -29,10 +40,13 @@ public class ServerRepository(AppDbContext db) : IServerRepository
     
     public async Task<ServerRole?> GetUserRoleInServerAsync(int serverId, int userId, CancellationToken ct)
     {
-        return await db.ServerMemberships
-            .Where(sm => sm.ServerId == serverId && sm.UserId == userId)
-            .Select(sm => (ServerRole?)sm.Role)
+        var role = await db.ServerMemberships
+            .AsNoTracking()
+            .Where(m => m.ServerId == serverId && m.UserId == userId)
+            .Select(m => (ServerRole?)m.Role)
             .FirstOrDefaultAsync(ct);
+        
+        return role ?? ServerRole.Member;
     }
 
     public async Task AddInviteAsync(ServerInvite invite, CancellationToken ct)

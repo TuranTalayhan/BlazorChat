@@ -1,30 +1,57 @@
 using BlazorChat.Client.Services;
+using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BlazorChat.Client.Features.Servers.Services;
 
-public interface IServersHubService : IAsyncDisposable
+public interface IServerHubService
 {
-    Task ConnectAsync();
+    Task WatchServerAsync(int serverId);
 }
 
-public class ServersHubService(ISignalRConnectionFactory connectionFactory) : IServersHubService
+public class ServerHubService : IServerHubService, IAsyncDisposable
 {
-    private HubConnection? _hubConnection;
+    private readonly HubConnection _connection;
+    private readonly NavigationState _navState;
+    private int _currentWatchedServerId;
 
-    public async Task ConnectAsync()
+    public ServerHubService(ISignalRConnectionFactory factory, NavigationState navState)
     {
-        if (_hubConnection is not null) return; 
-        _hubConnection = connectionFactory.CreateConnection("hubs/server");
+        _navState = navState;
+        _connection = factory.CreateConnection("hubs/server");
 
-        await _hubConnection.StartAsync();
+        _connection.On<ServerDto>("ServerUpdated", server => _navState.HandleServerUpdated(server));
+        _connection.On<int, ChannelDto>("ChannelCreated", (sId, ch) => _navState.HandleChannelCreated(ch));
+        _connection.On<int, int>("ChannelDeleted", (sId, chId) => _navState.HandleChannelDeleted(chId));
+        _connection.On<int, int, ServerRole>("UserRoleUpdated", (serverId, userId, newRole) => 
+            _navState.HandleUserRoleChanged(serverId, userId, newRole));
+    }
+
+    public async Task WatchServerAsync(int serverId)
+    {
+        if (_connection.State == HubConnectionState.Disconnected)
+        {
+            await _connection.StartAsync();
+        }
+
+        if (_currentWatchedServerId == serverId) return;
+
+        if (_currentWatchedServerId > 0)
+        {
+            await _connection.InvokeAsync("LeaveServerGroup", _currentWatchedServerId);
+        }
+
+        _currentWatchedServerId = serverId;
+        await _connection.InvokeAsync("JoinServerGroup", serverId);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection != null)
+        if (_connection.State != HubConnectionState.Disconnected)
         {
-            await _hubConnection.DisposeAsync();
+            await _connection.StopAsync();
         }
+        await _connection.DisposeAsync();
     }
 }

@@ -25,35 +25,62 @@
         {
             @foreach (var member in ViewModel.Members)
             {
-                <div class="member-item d-flex align-center" @key="member.Id">
-                    <div class="avatar">
-                        @if (!string.IsNullOrEmpty(member.AvatarUrl))
-                        {
-                            <img src="@member.AvatarUrl" alt="@member.Username" class="avatar-image" />
-                        }
-                        else
-                        {
-                            <span>@(member.Username.ToUpper()[0])</span>
-                        }
-                        <div class="status @ViewModel.GetStatusClass(member.Status)"></div>
-                    </div>
+                <div class="member-item d-flex align-center justify-space-between px-2 py-1" @key="member.Id">
+                    <div class="d-flex align-center">
+                        <div class="avatar">
+                            @if (!string.IsNullOrEmpty(member.AvatarUrl))
+                            {
+                                <img src="@member.AvatarUrl" alt="@member.Username" class="avatar-image" />
+                            }
+                            else
+                            {
+                                <span>@(member.Username.ToUpper()[0])</span>
+                            }
+                            <div class="status @ViewModel.GetStatusClass(member.Status)"></div>
+                        </div>
 
-                    <div class="member-details">
-                        <div class="d-flex align-center">
-                            <span class="member-name @ViewModel.GetRoleCssClass(member.Role)">
-                                @member.Username
-                            </span>
-                
-                            @if (member.Role == ServerRole.Owner)
-                            {
-                                <span class="role-badge owner-badge">Owner</span>
-                            }
-                            else if (member.Role == ServerRole.Admin)
-                            {
-                                <span class="role-badge admin-badge">Admin</span>
-                            }
+                        <div class="member-details ml-2">
+                            <div class="d-flex align-center">
+                                <span class="member-name @ViewModel.GetRoleCssClass(member.Role)">
+                                    @member.Username
+                                </span>
+
+                                @switch (member.Role)
+                                {
+                                    case ServerRole.Owner:
+                                        <span class="role-badge owner-badge ml-1">Owner</span>
+                                        break;
+                                    case ServerRole.Admin:
+                                        <span class="role-badge admin-badge ml-1">Admin</span>
+                                        break;
+                                }
+                            </div>
                         </div>
                     </div>
+
+                    @if (ViewModel.IsCurrentUserOwner && member.Role != ServerRole.Owner)
+                    {
+                        <div class="member-actions-context">
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                @if (member.Role == ServerRole.Admin)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.ArrowDownward" 
+                                                 IconColor="Color.Warning" 
+                                                 OnClick="@(() => ViewModel.ChangeUserRoleAsync(member.Id, ServerRole.Member))">
+                                        Demote to Member
+                                    </MudMenuItem>
+                                }
+                                else
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.ArrowUpward" 
+                                                 IconColor="Color.Success" 
+                                                 OnClick="@(() => ViewModel.ChangeUserRoleAsync(member.Id, ServerRole.Admin))">
+                                        Promote to Admin
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                        </div>
+                    }
                 </div>
             }
         }

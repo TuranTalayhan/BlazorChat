@@ -104,6 +104,8 @@
         if (ChannelId > 0)
         {
             NavState.SetActiveChannel(ChannelId);
+
+            await NavState.EnsureServerIsLoadedForChannelAsync(ChannelId);
         }
 
         await ViewModel.LoadChannelAsync(ChannelId);

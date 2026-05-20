@@ -2,6 +2,7 @@ using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Chat.Services;
 using BlazorChat.Client.Features.DirectMessage;
 using BlazorChat.Client.Features.Friends.Services;
+using BlazorChat.Client.Services; // Ensure your NavigationState namespace is imported
 using BlazorChat.Shared.DTO;
 using Microsoft.AspNetCore.Components;
 
@@ -21,6 +22,7 @@ public class FriendsSidebarViewModel : IDisposable
     private readonly NavigationManager _navigationManager;
     private readonly AppState _appState;
     private readonly IChatHubService _chatHubService;
+    private readonly NavigationState _navState; // INJECTED
 
     public event Action? OnStateChanged;
 
@@ -36,7 +38,9 @@ public class FriendsSidebarViewModel : IDisposable
         IDirectMessageApiService dmApiService,
         IGlobalNotificationService notifications,
         NavigationManager navigationManager, 
-        AppState appState, IChatHubService chatHubService)
+        AppState appState, 
+        IChatHubService chatHubService,
+        NavigationState navState)
     {
         _friendshipApiService = friendshipApiService;
         _dmApiService = dmApiService;
@@ -44,8 +48,10 @@ public class FriendsSidebarViewModel : IDisposable
         _navigationManager = navigationManager;
         _appState = appState;
         _chatHubService = chatHubService;
+        _navState = navState;
 
-        _notifications.OnUserStatusChanged += HandleUserStatusChanged;
+        _navState.OnGlobalUserStatusChanged += HandleUserStatusChanged;
+        
         _notifications.OnNewFriendAdded += HandleNewFriend;
         _notifications.OnMessageReceived += HandleIncomingMessage; 
     }
@@ -54,7 +60,6 @@ public class FriendsSidebarViewModel : IDisposable
         (string.IsNullOrWhiteSpace(SearchTerm) || f.Username.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
         (StatusFilter == FriendFilter.All || f.Status != UserStatus.Offline)
     );
-
 
     public async Task InitializeAsync()
     {
@@ -158,7 +163,8 @@ public class FriendsSidebarViewModel : IDisposable
 
     public void Dispose()
     {
-        _notifications.OnUserStatusChanged -= HandleUserStatusChanged;
+        _navState.OnGlobalUserStatusChanged -= HandleUserStatusChanged;
+        
         _notifications.OnNewFriendAdded -= HandleNewFriend;
         _notifications.OnMessageReceived -= HandleIncomingMessage;
     }

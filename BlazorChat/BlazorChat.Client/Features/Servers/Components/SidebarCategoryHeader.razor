@@ -21,17 +21,23 @@
         {
             <MudText Typo="Typo.overline" Style="letter-spacing: 1px; user-select: none;" Class="flex-grow-1 text-truncate">@Category.Name.ToUpper()</MudText>
             
-            <div class="show-on-hover" @onclick:stopPropagation="true">
-                <MudMenu Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => ViewModel.StartEditingCategory(Category))">Rename</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => OnDelete.InvokeAsync(Category))">Delete</MudMenuItem>
-                </MudMenu>
-            </div>
+            @if (ViewModel.CanManageServer)
+            {
+                <div class="show-on-hover" @onclick:stopPropagation="true">
+                    <MudMenu Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => ViewModel.StartEditingCategory(Category))">Rename</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => OnDelete.InvokeAsync(Category))">Delete</MudMenuItem>
+                    </MudMenu>
+                </div>
+            }
         }
     </div>
     
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
-                   OnClick="@(() => OnCreateChannel.InvokeAsync(Category.Id))" Class="pa-1" />
+    @if (ViewModel.CanManageServer)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" 
+                       OnClick="@(() => OnCreateChannel.InvokeAsync(Category.Id))" Class="pa-1" />
+    }
 </div>
 
 @code {

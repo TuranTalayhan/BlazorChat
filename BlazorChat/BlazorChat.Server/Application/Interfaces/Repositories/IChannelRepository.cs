@@ -5,6 +5,7 @@ namespace BlazorChat.Server.Application.Interfaces.Repositories;
 
 public interface IChannelRepository
 {
+    Task<ServerDto?> GetServerByChannelIdAsync(int channelId, CancellationToken ct);
     Task<List<ChannelDto>> GetUserDirectMessagesAsync(int userId, CancellationToken ct);
     Task<ChannelDto?> GetChannelWithDetailsAsync(int channelId, CancellationToken ct);
     Task<bool> IsServerMemberAsync(int serverId, int userId, CancellationToken ct);

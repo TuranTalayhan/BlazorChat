@@ -1,6 +1,6 @@
 using BlazorChat.Shared.DTO;
 
-namespace BlazorChat.Shared.Hubs;
+namespace BlazorChat.Server.Hubs;
 
 public interface IChatClient
 {

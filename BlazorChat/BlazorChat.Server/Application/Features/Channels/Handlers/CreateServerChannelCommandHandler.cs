@@ -3,16 +3,18 @@ using BlazorChat.Server.Application.Features.Servers;
 using BlazorChat.Server.Application.Interfaces;
 using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
-using BlazorChat.Server.Infrastructure.Services;
+using BlazorChat.Server.Hubs;
 using BlazorChat.Shared.DTO;
 using Mediator;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BlazorChat.Server.Application.Features.Channels.Handlers;
 
 public class CreateServerChannelCommandHandler(
     IChannelRepository channelRepository,
     IServerAuthorizationService authService,
-    ICategoryManager categoryManager) 
+    ICategoryManager categoryManager,
+    IHubContext<ServerHub, IServerHubClient> hubContext) 
     : ICommandHandler<CreateServerChannelCommand, ChannelResult<ChannelDto>>
 {
     public async ValueTask<ChannelResult<ChannelDto>> Handle(CreateServerChannelCommand request, CancellationToken ct)
@@ -36,6 +38,19 @@ public class CreateServerChannelCommandHandler(
         await channelRepository.AddAsync(channel, ct);
         await channelRepository.SaveChangesAsync(ct);
 
-        return new ChannelResult<ChannelDto>(true, Data: channel.ToDto(category));
+        var resultDto = channel.ToDto(category);
+
+        try
+        {
+            await hubContext.Clients
+                .Group($"server_{request.ServerId}")
+                .ChannelCreated(request.ServerId, resultDto);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR Realtime channel creation push failed: {ex.Message}");
+        }
+
+        return new ChannelResult<ChannelDto>(true, Data: resultDto);
     }
 }

@@ -7,6 +7,7 @@ using BlazorChat.Server.Application.Features.Servers;
 using BlazorChat.Server.Application.Features.Servers.Commands;
 using BlazorChat.Server.Application.Features.Servers.Queries;
 using BlazorChat.Shared.DTO;
+using BlazorChat.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -144,6 +145,43 @@ public class ServersController(IMediator mediator) : ControllerBase
                 ServerError.NotFound => NotFound(),
                 ServerError.BadRequest => BadRequest(new { message = result.ErrorMessage }),
                 _ => StatusCode(500)
+            };
+        }
+
+        return Ok(result.Data);
+    }
+    
+    [HttpGet("by-channel/{channelId:int}")]
+    public async Task<ActionResult<ServerDto>> GetServerByChannelId(int channelId)
+    {
+        var serverDto = await mediator.Send(new GetServerByChannelQuery(channelId), HttpContext.RequestAborted);
+
+        if (serverDto == null)
+        {
+            return NotFound(); 
+        }
+
+        return Ok(serverDto);
+    }
+    
+    [HttpPut("{serverId:int}/members/{targetUserId:int}/role")]
+    public async Task<ActionResult<bool>> UpdateMemberRole(int serverId, int targetUserId, [FromBody] ServerRole newRole)
+    {
+        var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var result = await mediator.Send(
+            new UpdateMemberRoleCommand(serverId, targetUserId, newRole, currentUserId), 
+            HttpContext.RequestAborted
+        );
+
+        if (!result.IsSuccess)
+        {
+            return result.Error switch
+            {
+                ChannelError.Forbidden => Forbid(),
+                ChannelError.BadRequest => BadRequest(new { Message = result.ErrorMessage }),
+                ChannelError.NotFound => NotFound(new { Message = result.ErrorMessage }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError)
             };
         }
 

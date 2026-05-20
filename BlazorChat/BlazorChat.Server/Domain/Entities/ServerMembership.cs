@@ -10,7 +10,7 @@ public class ServerMembership
     public int UserId { get; init; }
     public User User { get; init; } = null!;
 
-    public ServerRole Role { get; init; } = ServerRole.Member;
+    public ServerRole Role { get; set; } = ServerRole.Member;
     public DateTime JoinedAt { get; init; } = DateTime.UtcNow;
     
     public static ServerMembership CreateOwner(int userId) => new() { UserId = userId, Role = ServerRole.Owner };

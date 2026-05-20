@@ -8,6 +8,7 @@ namespace BlazorChat.Client.Features.Servers.Services;
 
 public interface IChannelsApiService
 {
+    Task<bool> UpdateUserRoleInServerAsync(int serverId, int targetUserId, ServerRole newRole);
     Task<List<ChannelDto>> GetChannelsAsync(int serverId, CancellationToken ct = default);
     Task<List<CategoryDto>> GetCategoriesAsync(int serverId, CancellationToken ct = default);
     
@@ -24,11 +25,38 @@ public interface IChannelsApiService
     Task<InviteResponseDto?> CreateServerInviteAsync(int serverId, CreateInviteDto dto, CancellationToken ct = default);
     Task<ApiResponse<ServerDto>> JoinServerWithCodeAsync(string code, CancellationToken ct = default);
     Task<List<UserDto>> GetServerMembersAsync(int serverId, CancellationToken ct = default);
+    
+    Task<ServerDto?> GetServerByChannelIdAsync(int channelId, CancellationToken ct = default);
 }
 
 public class ChannelsApiService(HttpClient http) : IChannelsApiService
 {
     private const string BaseUrl = "api/servers";
+    
+    public async Task<bool> UpdateUserRoleInServerAsync(int serverId, int targetUserId, ServerRole newRole)
+    {
+        var response = await http.PutAsJsonAsync($"api/servers/{serverId}/members/{targetUserId}/role", newRole);
+        return response.IsSuccessStatusCode;
+    }
+    
+    public async Task<ServerDto?> GetServerByChannelIdAsync(int channelId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await http.GetAsync($"{BaseUrl}/by-channel/{channelId}", ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<ServerDto>(cancellationToken: ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
     
     public async Task<List<UserDto>> GetServerMembersAsync(int serverId, CancellationToken ct = default)
     {

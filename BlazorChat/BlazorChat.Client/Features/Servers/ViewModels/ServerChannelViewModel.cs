@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using BlazorChat.Client.Core;
 using BlazorChat.Client.Features.Servers.Services;
+using BlazorChat.Client.Services;
 using BlazorChat.Shared.DTO;
 using BlazorChat.Shared.Enums;
 using Microsoft.AspNetCore.Components;
@@ -8,10 +9,11 @@ using Microsoft.AspNetCore.Components.Routing;
 
 namespace BlazorChat.Client.Features.Servers.ViewModels;
 
-public class ServerChannelsViewModel : IDisposable
+public partial class ServerChannelsViewModel : IDisposable
 {
     private readonly IChannelsApiService _apiService;
     private readonly NavigationManager _nav;
+    private readonly NavigationState _navState;
     private readonly AppState _appState;
     
     public event Action? StateChanged;
@@ -25,15 +27,21 @@ public class ServerChannelsViewModel : IDisposable
     public int? EditingChannelId { get; private set; }
     public int? EditingCategoryId { get; private set; }
     public string EditName { get; set; } = string.Empty;
-    public ServerRole UserRole { get; private set; } = ServerRole.Member;
+    public ServerRole UserRole => _navState.CurrentUserRole;    
     public bool CanManageServer => UserRole is ServerRole.Admin or ServerRole.Owner;
 
-    public ServerChannelsViewModel(IChannelsApiService apiService, NavigationManager nav, AppState appState)
+    public ServerChannelsViewModel(
+        IChannelsApiService apiService, 
+        NavigationManager nav, 
+        AppState appState, NavigationState navState)
     {
         _apiService = apiService;
         _nav = nav;
         _appState = appState;
+        _navState = navState;
         _nav.LocationChanged += OnLocationChanged;
+        navState.OnChannelStructureChanged += HandleGlobalStructureAction;
+        navState.OnGlobalUserRoleChanged += HandleLiveRoleChange;
     }
 
     public async Task InitializeAsync(int serverId)
@@ -52,13 +60,33 @@ public class ServerChannelsViewModel : IDisposable
             StateChanged?.Invoke();
         }
     }
+    
+    private void HandleLiveRoleChange(int serverId, int userId, ServerRole newRole)
+    {
+        if (_currentServerId == serverId)
+        {
+            StateChanged?.Invoke();
+        }
+    }
+    
+    private void HandleGlobalStructureAction(StructureActionEvent e)
+    {
+        if (e is { Action: ResourceAction.Created, Channel: not null })
+        {
+            AddChannel(e.Channel);
+        }
+        else if (e is { Action: ResourceAction.Deleted, TargetId: not null })
+        {
+            Channels.RemoveAll(c => c.Id == e.TargetId.Value);
+            StateChanged?.Invoke();
+        }
+    }
 
     private async Task LoadChannels(int serverId)
     {
         IsLoading = true;
         StateChanged?.Invoke();
         
-        UserRole = await _apiService.GetUserRoleInServerAsync(serverId);
         Channels = await _apiService.GetChannelsAsync(serverId);
         Categories = await _apiService.GetCategoriesAsync(serverId);
         
@@ -84,11 +112,27 @@ public class ServerChannelsViewModel : IDisposable
 
     private void UpdateActiveChannel()
     {
-        var match = Regex.Match(_nav.Uri, @"/chat/(\d+)");
-        var newActiveId = match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        var match = MyRegex().Match(_nav.Uri);
+    
+        if (match.Success)
+        {
+            var urlChannelId = int.Parse(match.Groups[1].Value);
 
-        if (ActiveChannelId == newActiveId) return;
-        ActiveChannelId = newActiveId;
+            var belongsToCurrentServer = Channels.Any(c => c.Id == urlChannelId);
+
+            if (belongsToCurrentServer)
+            {
+                if (ActiveChannelId == urlChannelId) return;
+                ActiveChannelId = urlChannelId;
+                StateChanged?.Invoke();
+                return;
+            }
+        }
+        
+        var cachedChannelId = _appState.GetLastChannelForServer(_currentServerId) ?? 0;
+
+        if (ActiveChannelId == cachedChannelId) return;
+        ActiveChannelId = cachedChannelId;
         StateChanged?.Invoke();
     }
 
@@ -194,7 +238,12 @@ public class ServerChannelsViewModel : IDisposable
         StateChanged?.Invoke();
     }
 
-    public void Dispose() => _nav.LocationChanged -= OnLocationChanged;
+    public void Dispose()
+    {
+        _nav.LocationChanged -= OnLocationChanged;  
+        _navState.OnChannelStructureChanged -= HandleGlobalStructureAction;
+        _navState.OnGlobalUserRoleChanged -= HandleLiveRoleChange;
+    } 
 
     private void OnLocationChanged(object? s, LocationChangedEventArgs e) => UpdateActiveChannel();
     
@@ -203,4 +252,7 @@ public class ServerChannelsViewModel : IDisposable
     {
         public TKey Key { get; } = key;
     }
+
+    [GeneratedRegex(@"/chat/(\d+)")]
+    private static partial Regex MyRegex();
 }

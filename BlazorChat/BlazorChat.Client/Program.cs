@@ -14,6 +14,7 @@ using BlazorChat.Client.Features.Servers.Services;
 using BlazorChat.Client.Features.Servers.ViewModels;
 using BlazorChat.Client.Features.User;
 using BlazorChat.Client.Features.User.Services;
+using BlazorChat.Client.Features.User.ViewModels;
 using BlazorChat.Client.Services;
 using BlazorChat.Client.ViewModels;
 using Microsoft.AspNetCore.Components;
@@ -76,6 +77,7 @@ builder.Services.AddScoped<IChatHubService, ChatHubService>();
 builder.Services.AddScoped<IGlobalNotificationService, GlobalNotificationService>();
 builder.Services.AddScoped<ICustomStateUpdater>(sp => sp.GetRequiredService<ChatAuthStateProvider>());
 builder.Services.AddTransient<ServerMembersViewModel>();
+builder.Services.AddScoped<IServerHubService, ServerHubService>();
 
 
 await builder.Build().RunAsync();
