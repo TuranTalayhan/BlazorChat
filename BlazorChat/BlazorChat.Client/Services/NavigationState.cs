@@ -20,6 +20,7 @@ public class NavigationState : IDisposable
     public event Action<ReceiveUserStatusDto>? OnGlobalUserStatusChanged;
     public event Action<int, int, ServerRole>? OnGlobalUserRoleChanged;
     public event Action<StructureActionEvent>? OnChannelStructureChanged;
+    public event Action<int, UserDto>? OnGlobalUserJoinedServer;
 
     public NavigationState(IChannelsApiService channelsApiService, AuthenticationStateProvider authStateProvider)
     {
@@ -39,7 +40,11 @@ public class NavigationState : IDisposable
         if (!int.TryParse(idClaim, out var parsedId)) return 0;
         _cachedUserId = parsedId;
         return parsedId;
-
+    }
+    
+    public void HandleUserJoinedServer(int serverId, UserDto user)
+    {
+        OnGlobalUserJoinedServer?.Invoke(serverId, user);
     }
 
     public async void HandleUserRoleChanged(int serverId, int userId, ServerRole newRole)

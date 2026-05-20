@@ -2,13 +2,18 @@ using BlazorChat.Server.Application.Common;
 using BlazorChat.Server.Application.Features.Servers.Commands;
 using BlazorChat.Server.Application.Interfaces.Repositories;
 using BlazorChat.Server.Domain.Entities;
+using BlazorChat.Server.Hubs;
 using BlazorChat.Shared.DTO;
 using BlazorChat.Shared.Enums;
 using Mediator;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BlazorChat.Server.Application.Features.Servers.Handlers;
 
-public class JoinServerCommandHandler(IServerRepository serverRepository) 
+public class JoinServerCommandHandler(
+    IServerRepository serverRepository,
+    IUserRepository userRepository,
+    IHubContext<ServerHub, IServerHubClient> hubContext)
     : ICommandHandler<JoinServerCommand, Result<ServerDto>>
 {
     public async ValueTask<Result<ServerDto>> Handle(JoinServerCommand request, CancellationToken ct)
@@ -37,6 +42,31 @@ public class JoinServerCommandHandler(IServerRepository serverRepository)
         invite.Uses++;
         await serverRepository.AddMembershipAsync(membership, ct);
         await serverRepository.SaveChangesAsync(ct);
+
+        try
+        {
+            var userEntity = await userRepository.GetByIdAsync(request.UserId, ct);
+            
+            if (userEntity != null)
+            {
+                var joinedUserDto = new UserDto
+                {
+                    Id = userEntity.Id,
+                    Username = userEntity.Username,
+                    AvatarUrl = userEntity.AvatarUrl,
+                    Status = userEntity.Status, 
+                    Role = ServerRole.Member
+                };
+
+                await hubContext.Clients
+                    .Group($"server_{invite.ServerId}")
+                    .UserJoinedServer(invite.ServerId, joinedUserDto);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Realtime notification for user joining failed: {ex.Message}");
+        }
 
         return Result<ServerDto>.Success(new ServerDto 
         { 

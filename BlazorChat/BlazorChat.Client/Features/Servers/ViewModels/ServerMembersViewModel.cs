@@ -25,8 +25,8 @@ public class ServerMembersViewModel : IDisposable
         
         _navState.OnChanged += HandleNavigationChanged;
         _navState.OnGlobalUserStatusChanged += HandleLivePresenceUpdate;
-        
         _navState.OnGlobalUserRoleChanged += HandleLiveRoleUpdate;
+        _navState.OnGlobalUserJoinedServer += HandleLiveMemberJoin;
     }
 
     public async Task InitializeAsync()
@@ -37,6 +37,18 @@ public class ServerMembersViewModel : IDisposable
     private async void HandleNavigationChanged()
     {
         await CheckAndReloadMembersAsync();
+    }
+
+    private void HandleLiveMemberJoin(int serverId, UserDto newUser)
+    {
+        var currentServerId = _navState.SelectedServer?.Id ?? 0;
+        if (currentServerId != serverId) return;
+
+        if (Members.Any(m => m.Id == newUser.Id)) return;
+
+        Members.Add(newUser);
+        
+        StateChanged?.Invoke();
     }
 
     private void HandleLivePresenceUpdate(ReceiveUserStatusDto statusDto)
@@ -117,7 +129,7 @@ public class ServerMembersViewModel : IDisposable
     {
         _navState.OnChanged -= HandleNavigationChanged;
         _navState.OnGlobalUserStatusChanged -= HandleLivePresenceUpdate;
-        
         _navState.OnGlobalUserRoleChanged -= HandleLiveRoleUpdate;
+        _navState.OnGlobalUserJoinedServer -= HandleLiveMemberJoin;
     }
 }

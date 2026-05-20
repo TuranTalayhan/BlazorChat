@@ -26,6 +26,8 @@ public class ServerHubService : IServerHubService, IAsyncDisposable
         _connection.On<int, int>("ChannelDeleted", (sId, chId) => _navState.HandleChannelDeleted(chId));
         _connection.On<int, int, ServerRole>("UserRoleUpdated", (serverId, userId, newRole) => 
             _navState.HandleUserRoleChanged(serverId, userId, newRole));
+        _connection.On<int, UserDto>("UserJoinedServer", (serverId, user) => 
+            _navState.HandleUserJoinedServer(serverId, user));
     }
 
     public async Task WatchServerAsync(int serverId)
