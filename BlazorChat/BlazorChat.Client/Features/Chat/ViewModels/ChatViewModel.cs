@@ -58,14 +58,14 @@ public class ChatViewModel(IChatApiService apiService, ChatAuthStateProvider aut
         LoadedChannelId = channelId;
         Messages = [];
         HasMoreMessages = true;
-        ErrorMessage = string.Empty; // Reset errors when switching rooms
+        ErrorMessage = string.Empty;
         OnChanged?.Invoke();
 
         await chatHubService.JoinChannelAsync(channelId);
 
         var result = await apiService.GetMessagesAsync(channelId, ChunkSize, null);
     
-        if (result.IsSuccess && result.Data != null)
+        if (result is { IsSuccess: true, Data: not null })
         {
             if (result.Data.Count < ChunkSize)
             {

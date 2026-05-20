@@ -30,6 +30,14 @@
     else
     {
         <div class="message-scroll-container">
+    
+            @foreach (var msg in ViewModel.Messages)
+            {
+                <div @key="msg.Id" class="message-item-wrapper">
+                    <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
+                </div>
+            }
+
             @if (ViewModel.HasMoreMessages)
             {
                 <div class="load-more-sentinel" style="text-align: center; padding: 12px; color: #b9bbbe;">
@@ -47,14 +55,6 @@
                     }
                 </div>
             }
-            
-            <Virtualize Items="ViewModel.Messages" Context="msg" OverscanCount="10" ItemSize="70">
-                <ItemTemplate>
-                    <div @key="msg.Id" class="message-item-wrapper">
-                        <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
-                    </div>
-                </ItemTemplate>
-            </Virtualize>
         </div>
 
         <div class="chat-input-footer" style="display:flex; justify-content:flex-end; font-size: 0.8rem; margin-top: 4px;">

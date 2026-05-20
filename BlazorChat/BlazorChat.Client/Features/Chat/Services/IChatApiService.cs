@@ -17,7 +17,6 @@ public class ChatApiService(HttpClient http) : IChatApiService
 {
     public async Task<ApiResponse<List<MessageDto>>> GetMessagesAsync(int channelId, int count, DateTime? before = null, int? cursorId = null, CancellationToken ct = default)
     {
-        // 1. Build the base query segment safely
         var queryParams = new List<string> { $"count={count}" };
         
         if (before.HasValue)
@@ -34,7 +33,6 @@ public class ChatApiService(HttpClient http) : IChatApiService
 
         try
         {
-            // 2. Use GetAsync to intercept the raw status payload before parsing JSON
             var response = await http.GetAsync(url, ct);
 
             if (response.IsSuccessStatusCode)
@@ -48,7 +46,6 @@ public class ChatApiService(HttpClient http) : IChatApiService
                 };
             }
 
-            // 3. Gracefully maps failures instead of letting EnsureSuccessStatusCode throw exceptions
             var apiResponse = new ApiResponse<List<MessageDto>>
             {
                 IsSuccess = false,
@@ -68,7 +65,6 @@ public class ChatApiService(HttpClient http) : IChatApiService
         }
         catch (Exception ex)
         {
-            // Catches catastrophic network exceptions (like server down/offline) safely
             return new ApiResponse<List<MessageDto>>
             {
                 IsSuccess = false,
