@@ -31,12 +31,11 @@
     {
         <div class="message-scroll-container">
     
-            @foreach (var msg in ViewModel.Messages)
-            {
+            <Virtualize Items="ViewModel.Messages" Context="msg" SpacerElement="div">
                 <div @key="msg.Id" class="message-item-wrapper">
                     <MessageItem Message="msg" IsMe="msg.AuthorId == ViewModel.CurrentUserId" />
                 </div>
-            }
+            </Virtualize>
 
             @if (ViewModel.HasMoreMessages)
             {
