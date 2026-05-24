@@ -17,11 +17,11 @@ public class MessagesControllerTests
     [Fact]
     public async Task SendMessage_WhenMediatorReturnsForbidden_ShouldReturnForbidResult()
     {
-        // --- ARRANGE ---
+
         var mediatorMock = new Mock<IMediator>();
         var controller = new MessagesController(mediatorMock.Object);
 
-        // Simulate a logged-in user (User ID = 1)
+
         var user = new ClaimsPrincipal(new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, "1")
         ]));
@@ -37,11 +37,11 @@ public class MessagesControllerTests
         mediatorMock.Setup(m => m.Send(It.IsAny<SendMessageCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(failedResult);
 
-        // --- ACT ---
+
         var response = await controller.SendMessage(dto, CancellationToken.None);
 
-        // --- ASSERT ---
-        // FluentAssertions makes this super readable
+
+
         response.Should().BeOfType<ForbidResult>();
     }
 }

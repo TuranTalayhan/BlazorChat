@@ -38,7 +38,7 @@ public class FriendshipTests
     public void Accept_WhenStatusIsAlreadyAccepted_ShouldIgnoreTransitionAndMaintainAcceptedStatus()
     {
         var friendship = Friendship.CreatePending(1, 2);
-        friendship.Accept(); // Explicitly advance state into FriendshipStatus.Accepted
+        friendship.Accept();
         
         friendship.Accept(); // Execute a redundant second invocation
 

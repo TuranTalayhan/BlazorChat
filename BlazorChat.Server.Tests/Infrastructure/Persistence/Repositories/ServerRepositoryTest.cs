@@ -30,7 +30,7 @@ public class ServerRepositoryTests : SqliteTestBase<AppDbContext>
 
         var role = await _sut.GetUserRoleInServerAsync(server.Id, user.Id, CancellationToken.None);
 
-        // Assert
+
         Assert.That(role, Is.EqualTo(ServerRole.Owner), "The creator should be found with the Owner role.");
     }
 

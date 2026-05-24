@@ -23,7 +23,7 @@ public class MessageTests
             Assert.That(message.CreatedAt, Is.LessThanOrEqualTo(DateTime.UtcNow));
             Assert.That(message.UpdatedAt, Is.Null, "A newly created message should not have an UpdatedAt timestamp.");
             
-            // Verify navigation properties remain uninstantiated stubs
+
             Assert.That(message.Channel, Is.Null);
             Assert.That(message.Author, Is.Null);
         });
